@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Footer } from '@/components/Footer';
 import { Logo } from '@/components/Logo';
 import { LandingPreview } from '@/components/LandingPreview';
-import { ShapeField } from '@/components/Shapes';
+import { TileWall } from '@/components/TileWall';
 import { RecentProfiles } from '@/components/Recent';
 import { SearchBox } from '@/components/SearchBox';
 import { TopicLinks } from '@/components/TopicPage';
@@ -99,7 +99,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
             </p>
           </div>
           <div className="hero-art">
-            <ShapeField />
+            <TileWall tiles={sample.games.flatMap((g) => (g.art ? [{ src: g.art, label: g.title }] : []))} />
             <AchievementToasts items={toasts} />
           </div>
         </section>

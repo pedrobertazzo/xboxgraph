@@ -1337,7 +1337,7 @@ body::after {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNDAiIGhlaWdodD0iMjQwIiB2aWV3Qm94PSIwIDAgMjQwIDI0MCI+PGcgZmlsbD0iIzhmZTA4ZiIgb3BhY2l0eT0iMC41Ij48cGF0aCB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyMy4wIDIzLjApIHNjYWxlKDAuMzQpIiBkPSJNMTIgMTRDMzAgMTAgNDQgMzAgNTAgNDAgNTYgMzAgNzAgMTAgODggMTQgODQgMzIgNjIgNDQgNTggNTAgNjIgNTYgODQgNjggODggODYgNzAgOTAgNTYgNzAgNTAgNjAgNDQgNzAgMzAgOTAgMTIgODYgMTYgNjggMzggNTYgNDIgNTAgMzggNDQgMTYgMzIgMTIgMTRaIiBvcGFjaXR5PSIxIi8+PHBhdGggdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTY1LjAgMjUuMCkgc2NhbGUoMC4zKSIgZD0iTTEyIDE0QzMwIDEwIDQ0IDMwIDUwIDQwIDU2IDMwIDcwIDEwIDg4IDE0IDg0IDMyIDYyIDQ0IDU4IDUwIDYyIDU2IDg0IDY4IDg4IDg2IDcwIDkwIDU2IDcwIDUwIDYwIDQ0IDcwIDMwIDkwIDEyIDg2IDE2IDY4IDM4IDU2IDQyIDUwIDM4IDQ0IDE2IDMyIDEyIDE0WiIgb3BhY2l0eT0iMSIvPjxwYXRoIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE2My4wIDE2My4wKSBzY2FsZSgwLjM0KSIgZD0iTTEyIDE0QzMwIDEwIDQ0IDMwIDUwIDQwIDU2IDMwIDcwIDEwIDg4IDE0IDg0IDMyIDYyIDQ0IDU4IDUwIDYyIDU2IDg0IDY4IDg4IDg2IDcwIDkwIDU2IDcwIDUwIDYwIDQ0IDcwIDMwIDkwIDEyIDg2IDE2IDY4IDM4IDU2IDQyIDUwIDM4IDQ0IDE2IDMyIDEyIDE0WiIgb3BhY2l0eT0iMSIvPjxwYXRoIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI4LjAgMTY4LjApIHNjYWxlKDAuMjgpIiBkPSJNMTIgMTRDMzAgMTAgNDQgMzAgNTAgNDAgNTYgMzAgNzAgMTAgODggMTQgODQgMzIgNjIgNDQgNTggNTAgNjIgNTYgODQgNjggODggODYgNzAgOTAgNTYgNzAgNTAgNjAgNDQgNzAgMzAgOTAgMTIgODYgMTYgNjggMzggNTYgNDIgNTAgMzggNDQgMTYgMzIgMTIgMTRaIiBvcGFjaXR5PSIxIi8+PHBhdGggdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTEyLjAgMTA2LjApIHNjYWxlKDAuMTYpIiBkPSJNMTIgMTRDMzAgMTAgNDQgMzAgNTAgNDAgNTYgMzAgNzAgMTAgODggMTQgODQgMzIgNjIgNDQgNTggNTAgNjIgNTYgODQgNjggODggODYgNzAgOTAgNTYgNzAgNTAgNjAgNDQgNzAgMzAgOTAgMTIgODYgMTYgNjggMzggNTYgNDIgNTAgMzggNDQgMTYgMzIgMTIgMTRaIiBvcGFjaXR5PSIwLjYiLz48cGF0aCB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMDQuMCAyMDQuMCkgc2NhbGUoMC4xMikiIGQ9Ik0xMiAxNEMzMCAxMCA0NCAzMCA1MCA0MCA1NiAzMCA3MCAxMCA4OCAxNCA4NCAzMiA2MiA0NCA1OCA1MCA2MiA1NiA4NCA2OCA4OCA4NiA3MCA5MCA1NiA3MCA1MCA2MCA0NCA3MCAzMCA5MCAxMiA4NiAxNiA2OCAzOCA1NiA0MiA1MCAzOCA0NCAxNiAzMiAxMiAxNFoiIG9wYWNpdHk9IjAuNiIvPjxwYXRoIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEwMy4wIDI5LjApIHNjYWxlKDAuMTQpIiBkPSJNMTIgMTRDMzAgMTAgNDQgMzAgNTAgNDAgNTYgMzAgNzAgMTAgODggMTQgODQgMzIgNjIgNDQgNTggNTAgNjIgNTYgODQgNjggODggODYgNzAgOTAgNTYgNzAgNTAgNjAgNDQgNzAgMzAgOTAgMTIgODYgMTYgNjggMzggNTYgNDIgNTAgMzggNDQgMTYgMzIgMTIgMTRaIiBvcGFjaXR5PSIwLjYiLz48cGF0aCB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyMDIuMCAxMDguMCkgc2NhbGUoMC4xMikiIGQ9Ik0xMiAxNEMzMCAxMCA0NCAzMCA1MCA0MCA1NiAzMCA3MCAxMCA4OCAxNCA4NCAzMiA2MiA0NCA1OCA1MCA2MiA1NiA4NCA2OCA4OCA4NiA3MCA5MCA1NiA3MCA1MCA2MCA0NCA3MCAzMCA5MCAxMiA4NiAxNiA2OCAzOCA1NiA0MiA1MCAzOCA0NCAxNiAzMiAxMiAxNFoiIG9wYWNpdHk9IjAuNiIvPjwvZz48L3N2Zz4=') 0 0 / 240px 240px;
+  background: none;
   opacity: 0.07;
   -webkit-mask: linear-gradient(to bottom, #000, transparent 70%);
   mask: linear-gradient(to bottom, #000, transparent 70%);
@@ -1681,3 +1681,24 @@ body::before {
 .medal { display: inline-block; flex: none; }
 .hl-icon.medal, .summary-icon.medal { width: 32px; height: 32px; }
 .grade .medal { width: 22px; height: 22px; }
+
+/* The home-screen tile wall: a tilted grid of covers drifting slowly, one tile lifted with a white border. */
+.hero-art { height: 420px; }
+.tile-wall { position: absolute; inset: 0; overflow: hidden; perspective: 1100px; -webkit-mask: radial-gradient(75% 80% at 60% 45%, #000 45%, transparent 100%); mask: radial-gradient(75% 80% at 60% 45%, #000 45%, transparent 100%); }
+.tw-plane { --s: 128px; position: absolute; left: -6%; top: -18%; display: grid; grid-template-columns: repeat(6, var(--s)); gap: 14px; transform: rotateX(14deg) rotateY(-20deg) rotateZ(4deg); transform-style: preserve-3d; animation: tw-drift 36s ease-in-out infinite alternate; }
+.tw-tile { position: relative; width: var(--s); height: var(--s); border-radius: 8px; overflow: hidden; background: var(--panel-2); opacity: 0.5; transition: opacity 0.4s, transform 0.45s cubic-bezier(0.3, 1.4, 0.5, 1), box-shadow 0.4s; }
+.tw-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tw-tile.on { opacity: 1; transform: translateZ(40px) scale(1.12); box-shadow: 0 0 0 3px #fff, 0 0 0 8px rgba(255, 255, 255, 0.12), 0 0 46px rgba(95, 211, 95, 0.65); z-index: 2; }
+@keyframes tw-drift { from { translate: 0 0; } to { translate: -90px -40px; } }
+@media (prefers-reduced-motion: reduce) { .tw-plane { animation: none; } }
+.hero-art .toast-stage { z-index: 3; }
+@media (max-width: 860px) {
+  .hero-art { order: -1; height: 240px; }
+  .tw-plane { --s: 84px; gap: 10px; left: -20%; }
+}
+/* In the profile banner: the player's games, faint, fading in from the right. */
+.tile-wall.banner-wall { z-index: -2; opacity: 0.55; -webkit-mask: linear-gradient(90deg, transparent 30%, #000 75%); mask: linear-gradient(90deg, transparent 30%, #000 75%); }
+.banner-wall .tw-plane { --s: 110px; left: 48%; top: -60%; animation-duration: 60s; }
+.banner-wall .tw-tile { opacity: 0.7; }
+.banner-wall .tw-tile.on { transform: none; box-shadow: none; }
+@media (max-width: 720px) { .banner-wall .tw-plane { --s: 70px; left: 40%; } }

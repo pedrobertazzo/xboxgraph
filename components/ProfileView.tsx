@@ -5,7 +5,7 @@ import { Dashboard } from './Dashboard';
 import { Footer } from './Footer';
 import { Logo } from './Logo';
 import { Medal, ScoreRing } from './Medal';
-import { Shape } from './Shapes';
+import { TileWall } from './TileWall';
 import { OptedOut } from './OptedOut';
 import { RememberProfile } from './Recent';
 import { TopSearch } from './TopSearch';
@@ -116,7 +116,7 @@ export async function ProfileView({ id: raw, sp }: { id: string; sp: Search }) {
       </nav>
       <main className="dash">
         <header className="profile banner">
-          <BannerShapes />
+          <TileWall className="banner-wall" still tiles={bannerTiles(profile)} />
           {profile.avatar ? <img className="avatar" src={profile.avatar} alt="" /> : <div className="avatar ph avatar-medal" aria-hidden><Medal kind="score" /></div>}
           <div className="who">
             <h1>
@@ -171,11 +171,11 @@ export async function ProfileView({ id: raw, sp }: { id: string; sp: Search }) {
   );
 }
 
-// The banner's pattern: a few big outlined shapes behind the player's name, fading in from the right.
-function BannerShapes() {
-  return (
-    <div className="banner-shapes" aria-hidden>
-      <Shape kind="mark" style={{ right: '17%', top: '-12%', width: 210, height: 210 }} />
-    </div>
-  );
+// The banner's wall: the player's own games, most played first, then most recent.
+function bannerTiles(p: XboxProfile) {
+  return [...p.games]
+    .filter((g) => g.art ?? g.icon)
+    .sort((a, b) => (b.playMin ?? 0) - (a.playMin ?? 0) || (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0))
+    .slice(0, 24)
+    .map((g) => ({ src: (g.art ?? g.icon)!, label: g.title }));
 }

@@ -92,7 +92,7 @@ Search takes a gamertag (classic, or modern with a `#1234` suffix) or a profile 
 
 ## Look
 
-The feel of the Xbox home screen: near-black charcoal with a soft green glow, frosted tiles with small rounded corners that lift with a white border when you point at them, plain green buttons that turn white on focus, and an "achievement unlocked" pop-up cycling through the sample's best unlocks on the landing page. A bold X with curved arms that flare at the tips floats in the hero and the profile banner: a nod to Xbox drawn for this site, never inside a sphere, so it isn't the Xbox logo. The gamerscore coin, 100% medal and rare gem are drawn for this site (`components/Medal.tsx`). Nothing uses the Xbox logo, Microsoft's fonts or its artwork.
+The feel of the Xbox home screen: near-black charcoal with a soft green glow, frosted tiles with small rounded corners that lift with a white border when you point at them, plain green buttons that turn white on focus, and an "achievement unlocked" pop-up cycling through the sample's best unlocks on the landing page. A tilted wall of game covers drifts behind the landing hero, one tile at a time lifted and lit with a white border like the home screen's focus; profile banners show the same wall built from the player's own games. The gamerscore coin, 100% medal and rare gem are drawn for this site (`components/Medal.tsx`). Nothing uses the Xbox logo, Microsoft's fonts or its artwork.
 
 The sample player's games are made up; their covers are illustrated SVGs in `public/sample/`.
 
@@ -136,7 +136,8 @@ lib/
 components/
   Dashboard.tsx, views.tsx   morphgrid setup and the eight card views
   ProfileView.tsx            the profile page
-  Medal.tsx, Shapes.tsx      the gamerscore coin, 100% medal, rare gem and the hero outlines
+  Medal.tsx                  the gamerscore coin, 100% medal and rare gem
+  TileWall.tsx               the home-screen wall of covers in the hero and banners
   Toast.tsx                  the landing page's achievement pop-up
 scripts/
   xbox-login.ts              signs the helper account in once
