@@ -167,3 +167,45 @@ describe('stats', () => {
     expect(s.heat!.values.at(-1)).toBe(-1);
   });
 });
+
+describe('store and Game Pass stats', () => {
+  const g = (id: string, price: number, hrs: number, over: Partial<Game> = {}) => game({ id, title: id, price, playMin: hrs * 60, ...over });
+
+  it('adds up library value and cost per hour, best value first', () => {
+    const p = profile([g('Cheap', 10, 100), g('Dear', 70, 7), g('Mid', 30, 15, { gamePass: true })]);
+    const v = stat(p, 'value')!;
+    expect(v.value).toBe(110);
+    expect(v.progress.value).toBe(30);
+    const c = stat(p, 'costhour')!;
+    expect(c.series.map((e) => e.label)).toEqual(['Cheap', 'Mid', 'Dear']);
+    expect(c.value).toBeCloseTo(110 / 122);
+  });
+
+  it('lists games rated 4.5 stars or more, with enough ratings', () => {
+    const p = profile([g('Great', 0, 5, { rating: 4.8, ratings: 9000 }), g('Few', 0, 5, { rating: 4.9, ratings: 20 }), g('Fine', 0, 5, { rating: 4.0, ratings: 9000 })]);
+    const s = stat(p, 'rated')!;
+    expect(s.series.map((e) => e.label)).toEqual(['Great']);
+    expect(s.progress.max).toBe(2);
+  });
+
+  it('ranks studios by hours, tidying company suffixes', () => {
+    const p = profile([g('A', 0, 50, { developer: 'FromSoftware, Inc.' }), g('B', 0, 20, { developer: 'FromSoftware, Inc.' }), g('C', 0, 30, { developer: 'Rare Ltd' })]);
+    const s = stat(p, 'studios')!;
+    expect(s.display).toBe('FromSoftware');
+    expect(s.value).toBe(70);
+  });
+
+  it('shares how much is Game Pass, only when the flag is known', () => {
+    expect(stat(profile([g('A', 0, 1), g('B', 0, 1), g('C', 0, 1)]), 'gamepass')).toBeUndefined();
+    const s = stat(profile([g('A', 0, 30, { gamePass: true }), g('B', 0, 10, { gamePass: false }), g('C', 0, 60, { gamePass: false })]), 'gamepass')!;
+    expect(s.display).toBe('33%');
+    expect(s.progress.value / s.progress.max).toBeCloseTo(0.3);
+  });
+
+  it('counts games played this year by last play when there are no unlock dates', () => {
+    const p = profile([game({ id: 'a', lastPlayed: Date.UTC(2026, 2, 3) }), game({ id: 'b', lastPlayed: Date.UTC(2026, 9, 3) }), game({ id: 'c', lastPlayed: Date.UTC(2025, 9, 3) })]);
+    const s = stat(p, 'thisyear')!;
+    expect(s.display).toBe('2');
+    expect(s.series[2].value).toBe(1);
+  });
+});

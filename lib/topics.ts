@@ -95,6 +95,32 @@ export const TOPICS: Topic[] = [
     ],
   },
   {
+    slug: 'xbox-library-value',
+    title: 'Xbox Library Value, Cost per Hour and Game Pass Stats',
+    description:
+      'What are your Xbox games worth? See the store value of the games you play, your cost per hour, how much of your gaming is Game Pass, your favourite studios and your best-rated games. Free.',
+    h1: 'What is your Xbox library worth?',
+    lede:
+      'Type a gamertag and see what the games you play would cost in the Xbox store today, how little an hour of play costs you, how much of it is Game Pass, and the studios and top-rated games your hours go to.',
+    sections: [
+      ['Today’s store prices', 'Each game you’ve played is looked up in the Xbox store, so the value is today’s US list price, not what you paid or a sale price.'],
+      ['Cost per hour', 'Price divided by hours played: the games that gave you the most for your money come first.'],
+      ['How much is Game Pass', 'Xbox says which games in your history are on Game Pass, so you can see its share of your games and your hours.'],
+    ],
+    stats: [
+      ['value', 'What the games you’ve played would cost in the Xbox store today.'],
+      ['costhour', 'Price per hour played, best value first.'],
+      ['gamepass', 'How much of your games and hours are on Game Pass.'],
+      ['studios', 'The studios your play time goes to.'],
+      ['rated', 'The games you play that Xbox store players rate 4.5 stars or more.'],
+    ],
+    faq: [
+      ['Is this what I paid?', 'No. It’s each game’s current US list price in the Xbox store. Sales, bundles, Game Pass and gifts aren’t counted, and free games count as $0.'],
+      ['Why are some games missing?', 'Only games with a store page are priced; older games and some Xbox 360 titles have none. We look up your 80 most played games.'],
+      ['Where do studios and ratings come from?', 'From the Xbox store’s own listing for each game: its developer, and the average rating its players gave it.'],
+    ],
+  },
+  {
     slug: 'xbox-backlog',
     title: 'Xbox Backlog: Hours to Finish the Games You Started',
     description:

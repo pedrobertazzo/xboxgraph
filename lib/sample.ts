@@ -63,7 +63,30 @@ const ART: Record<string, [string, string]> = {
 
 const WORDS = ['First Steps', 'Getting Warm', 'Sharpshooter', 'Untouchable', 'Night Shift', 'Collector', 'Long Haul', 'No Detours', 'Hidden Path', 'Photo Finish', 'Clean Sweep', 'Iron Will', 'Lucky Break', 'Off the Map', 'The Long Way', 'Speed Demon', 'Perfectionist', 'Patience', 'Full House', 'Master Class'];
 
-export function sampleProfile(now = Date.now()): XboxProfile {
+// From the Xbox store catalogue: developer, publisher, US list price, player rating and how many rated it; and whether
+// the game is on Game Pass.
+const STORE: Record<string, [string, string, number, number, number, boolean]> = {
+  'Halo Infinite': ['343 Industries', 'Xbox Game Studios', 59.99, 3.6, 22163, true],
+  'Forza Horizon 5': ['Playground Games', 'Xbox Game Studios', 59.99, 3.3, 11301, true],
+  'Starfield': ['Bethesda Game Studios', 'Bethesda Softworks', 49.99, 3.3, 84232, true],
+  'ELDEN RING': ['FromSoftware, Inc.', 'Bandai Namco Entertainment America Inc.', 59.99, 4.5, 55452, false],
+  'Hollow Knight: Silksong': ['Team Cherry', 'Team Cherry', 19.99, 4.4, 18590, true],
+  'Sea of Thieves': ['Rare Ltd', 'Microsoft Studios', 39.99, 3.7, 118945, true],
+  'Gears 5': ['The Coalition', 'Xbox Game Studios', 29.99, 4.6, 369593, true],
+  'Hades': ['Supergiant Games', 'Supergiant Games', 24.99, 4.6, 13004, false],
+  'Microsoft Flight Simulator': ['Asobo Studio', 'Xbox Game Studios', 59.99, 3.7, 2149, true],
+  'Cuphead': ['Studio MDHR', 'Studio MDHR', 26.99, 4.7, 1408, false],
+  'Indiana Jones and the Great Circle': ['MachineGames', 'Bethesda Softworks', 69.99, 4.3, 27973, true],
+  'Stardew Valley': ['ConcernedApe', 'ConcernedApe', 14.99, 4.7, 13215, false],
+  'Fallout 4': ['Bethesda Game Studios', 'Bethesda Softworks', 19.99, 4.5, 137742, false],
+  'Fable II': ['Lionhead Studios', 'Xbox Game Studios', 19.99, 4.1, 5708, true],
+  'Mass Effect 2': ['BioWare', 'Electronic Arts', 19.99, 4.8, 2238, true],
+  'Vampire Survivors': ['Poncle', 'Poncle', 4.99, 4.7, 13719, false],
+  'Palworld': ['Pocketpair', 'Pocketpair', 29.99, 3.9, 58226, true],
+};
+
+// `full` keeps every field even when OpenXBL is the source (the landing page's achievement pop-ups use the unlocks).
+export function sampleProfile(now = Date.now(), { full = false } = {}): XboxProfile {
   const r = rng(20261110);
   const today = Math.floor(now / 86400000) * 86400000;
   const unlocks: Unlock[] = [];
@@ -96,6 +119,7 @@ export function sampleProfile(now = Date.now()): XboxProfile {
       });
     }
     const [box, poster] = ART[title];
+    const [developer, publisher, price, rating, ratings, gamePass] = STORE[title];
     return {
       id,
       title,
@@ -109,15 +133,20 @@ export function sampleProfile(now = Date.now()): XboxProfile {
       genres: [genre],
       released: Date.UTC(year, (i * 5) % 12, 1 + ((i * 7) % 27)),
       achievements: { earned, total, score, maxScore, progress: Math.min(100, Math.round((score / maxScore) * 100)) },
+      developer,
+      publisher,
+      price,
+      rating,
+      ratings,
+      gamePass,
     };
   });
   unlocks.sort((a, b) => b.at - a.at);
   attachUnlocks(games, unlocks);
   // Through OpenXBL real profiles have no rarity, genres or release dates, so the sample shows none either.
-  if (source() === 'openxbl') {
-    for (const u of unlocks) u.rarity = null;
-    for (const g of games) Object.assign(g, { genres: [], released: null });
-  }
+  // Through OpenXBL real profiles have no unlock list (so no rarity or dates), so the sample shows none either.
+  const lean = source() === 'openxbl' && !full;
+  if (lean) for (const g of games) Object.assign(g, { firstUnlock: null, lastUnlock: null });
   return {
     id: 'sample',
     name: 'SampleHunter',
@@ -129,8 +158,9 @@ export function sampleProfile(now = Date.now()): XboxProfile {
     location: null,
     tenure: 9,
     games,
-    unlocks,
+    unlocks: lean ? [] : unlocks,
     unlocksCapped: false,
+    unlocksOff: lean,
     playHidden: false,
     unlocksHidden: false,
   };

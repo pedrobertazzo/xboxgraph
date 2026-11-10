@@ -3,13 +3,13 @@ import { rowItems, rowSlotId, type Section } from 'morphgrid';
 import { boardRows, clockQuery, dashQuery, decodeLayout, decodeRows, decodeSections, encodeLayout, encodeRows, matchPreset, presetBoard, readClock, readDashState, validTimeZone } from '@/lib/layout';
 import { DEFAULT_TITLE, EXTRA_TITLE, MAX_SLOTS, PRESETS, presetById, presetRows, type ViewKey } from '@/lib/presets';
 
-const all = ['gamerscore', 'achievements', 'completed', 'completion', 'almost', 'playtime', 'top', 'recent', 'platforms', 'rarest', 'rarity', 'when', 'calendar', 'starts', 'scorerate', 'oneanddone', 'finishrate', 'biggest', 'genres', 'eras', 'instead', 'backlog', 'thisyear'];
+const all = ['gamerscore', 'achievements', 'completed', 'completion', 'almost', 'playtime', 'top', 'recent', 'platforms', 'rarest', 'rarity', 'when', 'calendar', 'starts', 'scorerate', 'oneanddone', 'finishrate', 'biggest', 'genres', 'eras', 'instead', 'backlog', 'thisyear', 'value', 'costhour', 'rated', 'studios', 'gamepass'];
 const keys = ['gamerscore', 'achievements', 'completed', 'completion', 'starts', 'rarity', 'top', 'almost', 'finishrate', 'scorerate', 'calendar'];
 const shown = (layout: Record<string, string | null>) => Object.values(layout).filter(Boolean);
 
 describe('presets', () => {
   for (const p of PRESETS)
-    for (const n of [5, 10, 15, 23]) {
+    for (const n of [5, 10, 15, 28]) {
       it(`${p.name} shows all ${n} stats once, in rows of at most ${MAX_SLOTS}`, () => {
         const ks = all.slice(0, n);
         const board = presetBoard(p, ks);
@@ -35,7 +35,7 @@ describe('presets', () => {
     const b = presetBoard(presetById('standard'), all);
     expect(b.sections[0].title).toBe('Your Xbox gaming stats');
     expect(boardRows(b)[0].view).toBe('highlight');
-    expect(rowItems(boardRows(b), b.layout)[0]).toEqual(['gamerscore', 'achievements', 'playtime', 'finishrate']);
+    expect(rowItems(boardRows(b), b.layout)[0]).toEqual(['gamerscore', 'playtime', 'value', 'finishrate']);
   });
 
   it('gives stats a preset has no slot for a row of the card type that suits them', () => {

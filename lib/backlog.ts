@@ -70,7 +70,8 @@ export function backlogOf(p: XboxProfile, now = Date.now()): Backlog | null {
   const total = games.reduce((s, g) => s + g.left, 0);
   const hours = p.games.reduce((s, g) => s + (g.playMin ?? 0), 0) / 60;
   const first = Math.min(...p.games.map((g) => g.firstUnlock ?? Infinity), ...p.unlocks.map((u) => u.at));
-  const weeks = Number.isFinite(first) ? Math.max(4, (now - first) / WEEK) : null;
+  // Without unlock dates (OpenXBL), the years on Xbox from the tenure badge give the span instead.
+  const weeks = Number.isFinite(first) ? Math.max(4, (now - first) / WEEK) : p.tenure ? p.tenure * 52 : null;
   return { games, total, perWeek: hours > 0 && weeks ? hours / weeks : null, perCompletion };
 }
 

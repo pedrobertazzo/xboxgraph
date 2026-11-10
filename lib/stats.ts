@@ -658,6 +658,7 @@ function thisYear(p: XboxProfile, now: number): Stat | null {
   const start = Date.UTC(y, 0, 1);
   const end = Date.UTC(y + 1, 0, 1);
   const within = (t: number | null | undefined) => t != null && t >= start && t < end;
+  if (!p.unlocks.length) return yearByLastPlayed(p, y, review, within, now);
   const yearUnlocks = p.unlocks.filter((u) => within(u.at));
   const ids = new Set(yearUnlocks.map((u) => u.titleId));
   const playedThen = p.games.filter((g) => ids.has(g.id) || within(g.lastPlayed));
@@ -686,6 +687,168 @@ function thisYear(p: XboxProfile, now: number): Stat | null {
   };
 }
 
+// Without unlock dates (OpenXBL): the games played that year, by the month each was last played.
+function yearByLastPlayed(p: XboxProfile, y: number, review: boolean, within: (t: number | null | undefined) => boolean, now: number): Stat | null {
+  const list = p.games.filter((g) => within(g.lastPlayed));
+  if (!list.length) return null;
+  const months = review ? 12 : new Date(now).getUTCMonth() + 1;
+  const series: Entry[] = Array.from({ length: months }, (_, m) => {
+    const n = list.filter((g) => new Date(g.lastPlayed!).getUTCMonth() === m).length;
+    return { label: MONTHS[m], value: n, display: nf(n) };
+  });
+  const done = list.filter(isComplete).length;
+  const top = [...list].sort((a, b) => (b.playMin ?? 0) - (a.playMin ?? 0))[0];
+  return {
+    key: 'thisyear',
+    title: review ? `Your ${y} in review` : `Your ${y}`,
+    value: list.length,
+    display: nf(list.length),
+    unit: `games played in ${y}`,
+    series,
+    progress: { value: done, max: list.length, label: `${plural(done, 'game')} at 100%` },
+    line:
+      `${review ? `In ${y}` : `So far in ${y}`} you’ve played ${plural(list.length, 'game')}` +
+      (top?.playMin ? `, the biggest ${top.title} (${fmtHours(top.playMin)} all time)` : '') +
+      `. Each game counts in the month you last played it.` +
+      (review ? ` From February this card shows ${y + 1} so far.` : ''),
+  };
+}
+
+// ———————————————————————— From the Xbox store catalogue (lib/catalog.ts) and the title history's Game Pass flag
+
+const usd = (n: number) => (n >= 1000 ? `$${nf(n)}` : n >= 10 ? `$${Math.round(n)}` : `$${n.toFixed(2)}`);
+const touched = (g: Game) => (g.playMin ?? 0) > 0 || (g.achievements?.score ?? 0) > 0;
+const priced = (p: XboxProfile) => p.games.filter((g) => (g.price ?? 0) > 0 && touched(g));
+
+// What the games played would cost in the store today.
+function value(p: XboxProfile): Stat | null {
+  const list = priced(p).sort((a, b) => b.price! - a.price!);
+  if (list.length < 3) return null;
+  const total = list.reduce((s, g) => s + g.price!, 0);
+  const gp = list.filter((g) => g.gamePass).reduce((s, g) => s + g.price!, 0);
+  const hrs = list.reduce((s, g) => s + (g.playMin ?? 0), 0) / 60;
+  return {
+    key: 'value',
+    title: 'Library value',
+    value: total,
+    display: usd(total),
+    unit: 'of games, at today’s store prices',
+    series: list.slice(0, 8).map((g) => ({ label: g.title, value: g.price!, display: usd(g.price!), ...art(g) })),
+    progress: { value: gp, max: total, label: gp ? `${usd(gp)} of it in Game Pass games` : `${plural(list.length, 'game')} with a price` },
+    line:
+      `The ${plural(list.length, 'game')} you’ve played would cost ${usd(total)} in the Xbox store today` +
+      (hrs >= 1 ? `, about ${usd(total / hrs)} an hour of play` : '') +
+      `. That’s today’s US list price, not what you paid` +
+      (gp ? `, and ${usd(gp)} of it is in games on Game Pass` : '') +
+      '.',
+  };
+}
+
+// Price per hour played: the best value first.
+function costPerHour(p: XboxProfile): Stat | null {
+  const list = priced(p)
+    .filter((g) => (g.playMin ?? 0) >= 60)
+    .map((g) => ({ g, rate: g.price! / (g.playMin! / 60) }))
+    .sort((a, b) => a.rate - b.rate);
+  if (list.length < 3) return null;
+  const total = list.reduce((s, x) => s + x.g.price!, 0) / list.reduce((s, x) => s + x.g.playMin! / 60, 0);
+  const cheap = list.filter((x) => x.rate < 1).length;
+  const worst = list[list.length - 1];
+  return {
+    key: 'costhour',
+    title: 'Cost per hour',
+    value: total,
+    display: usd(total),
+    unit: 'an hour of play, at today’s prices',
+    series: list.slice(0, 8).map(({ g, rate }) => ({ label: g.title, value: rate, display: `${usd(rate)}/hr`, ...art(g) })),
+    progress: { value: cheap, max: list.length, label: `${plural(cheap, 'game')} under $1 an hour` },
+    line: `Your best value is ${list[0].g.title}: ${usd(list[0].g.price!)} for ${fmtHours(list[0].g.playMin!)}, ${usd(list[0].rate)} an hour. The priciest per hour: ${worst.g.title}, ${usd(worst.rate)}.`,
+  };
+}
+
+// Games the store's players rate 4.5 stars or more (with at least 500 ratings).
+function bestRated(p: XboxProfile): Stat | null {
+  const rated = p.games.filter((g) => g.rating != null && (g.ratings ?? 0) >= 500 && touched(g));
+  const list = rated.filter((g) => g.rating! >= 4.5).sort((a, b) => b.rating! - a.rating! || (b.ratings ?? 0) - (a.ratings ?? 0));
+  if (!list.length) return null;
+  const k = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}K` : String(n));
+  const best = list[0];
+  return {
+    key: 'rated',
+    title: 'Best rated you play',
+    value: list.length,
+    display: nf(list.length),
+    unit: list.length === 1 ? 'game rated 4.5★ or more' : 'games rated 4.5★ or more',
+    series: list.slice(0, 8).map((g) => ({ label: g.title, value: g.rating!, display: `${g.rating!.toFixed(1)}★ · ${k(g.ratings!)}`, ...art(g), badge: isComplete(g) ? ('complete' as const) : undefined })),
+    gallery: list.slice(0, 12).map((g) => ({ label: g.title, value: g.rating!, display: `${g.rating!.toFixed(1)}★`, ...art(g) })),
+    progress: { value: list.length, max: rated.length, label: `${pct(list.length, rated.length)}% of your rated games` },
+    cover: { label: best.title, ...art(best) },
+    line: `${plural(list.length, 'game')} you’ve played ${list.length === 1 ? 'is' : 'are'} rated 4.5 stars or more by Xbox store players. Top: ${best.title}, ${best.rating!.toFixed(1)}★ from ${nf(best.ratings!)} ratings.`,
+  };
+}
+
+const studioName = (s: string) => s.replace(/,?\s*(Inc\.?|LLC|Ltd\.?|S\.A\.|GmbH)$/i, '').trim();
+
+// The studios the hours go to, by developer.
+function studios(p: XboxProfile): Stat | null {
+  const list = p.games.filter((g) => (g.developer || g.publisher) && touched(g));
+  if (list.length < 3) return null;
+  const byHours = played(list).length >= 3;
+  const by = new Map<string, { w: number; games: number }>();
+  for (const g of list) {
+    const name = studioName((g.developer ?? g.publisher)!);
+    const x = by.get(name) ?? { w: 0, games: 0 };
+    x.w += byHours ? g.playMin ?? 0 : 1;
+    x.games++;
+    by.set(name, x);
+  }
+  const total = [...by.values()].reduce((s, x) => s + x.w, 0);
+  if (!total) return null;
+  const ranked = [...by].sort((a, b) => b[1].w - a[1].w);
+  const [lead] = ranked;
+  return {
+    key: 'studios',
+    title: 'Favorite studios',
+    value: pct(lead[1].w, total),
+    display: lead[0],
+    unit: `${pct(lead[1].w, total)}% of your ${byHours ? 'play time' : 'games'}`,
+    series: ranked.slice(0, 6).map(([name, x]) => ({ label: name, value: byHours ? x.w / 60 : x.w, display: byHours ? fmtHours(x.w) : plural(x.games, 'game') })),
+    progress: { value: lead[1].w, max: total, label: `${lead[0]}: ${plural(lead[1].games, 'game')}` },
+    line:
+      `${lead[0]} gets ${pct(lead[1].w, total)}% of your ${byHours ? `play time (${fmtHours(lead[1].w)})` : 'games'} across ${plural(lead[1].games, 'game')}` +
+      (ranked[1] ? `, then ${ranked[1][0]}${ranked[2] ? ` and ${ranked[2][0]}` : ''}` : '') +
+      '. Studios come from the Xbox store.',
+    tag: lead[0],
+  };
+}
+
+// How much of the library and the hours is Game Pass.
+function gamePass(p: XboxProfile): Stat | null {
+  const known = p.games.filter((g) => g.gamePass != null && touched(g));
+  const list = known.filter((g) => g.gamePass);
+  if (known.length < 3 || !list.length) return null;
+  const hrs = (gs: Game[]) => gs.reduce((s, g) => s + (g.playMin ?? 0), 0);
+  const gpH = hrs(list);
+  const allH = hrs(known);
+  const ranked = [...list].sort((a, b) => (b.playMin ?? 0) - (a.playMin ?? 0) || (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0));
+  const share = pct(list.length, known.length);
+  return {
+    key: 'gamepass',
+    title: 'Game Pass',
+    value: share,
+    display: `${share}%`,
+    unit: `of your games are on Game Pass (${nf(list.length)})`,
+    series: ranked.slice(0, 8).map((g) => ({ label: g.title, value: hours(g.playMin ?? 0), display: g.playMin ? fmtHours(g.playMin) : 'played', ...art(g) })),
+    progress: { value: Math.round(gpH / 60), max: Math.round(allH / 60) || 1, label: allH ? `${pct(gpH, allH)}% of your hours` : `${nf(list.length)} of ${nf(known.length)} games` },
+    line:
+      `${plural(list.length, 'game')} you’ve played ${list.length === 1 ? 'is' : 'are'} on Game Pass, ${share}% of your games` +
+      (allH ? ` and ${pct(gpH, allH)}% of your hours` : '') +
+      (ranked[0]?.playMin ? `. Most played: ${ranked[0].title}, ${fmtHours(ranked[0].playMin)}` : '') +
+      '.',
+    tag: share >= 50 ? 'Game Pass regular' : share >= 20 ? 'Part-timer' : 'Buyer',
+  };
+}
+
 export function xboxStats(p: XboxProfile, now = Date.now(), clock: StatClock = { tz: 'UTC', h12: true }): Stat[] {
   const all: (Stat | null)[] = [
     gamerscore(p),
@@ -711,6 +874,11 @@ export function xboxStats(p: XboxProfile, now = Date.now(), clock: StatClock = {
     inOtherWords(p),
     backlog(p, now),
     thisYear(p, now),
+    value(p),
+    costPerHour(p),
+    bestRated(p),
+    studios(p),
+    gamePass(p),
   ];
   return all.filter((s): s is Stat => s !== null);
 }

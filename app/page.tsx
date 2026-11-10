@@ -72,7 +72,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
   const sample = sampleProfile();
   const stats = xboxStats(sample);
   const titles = new Map(sample.games.map((g) => [g.id, g.title]));
-  const toasts: ToastItem[] = [...sample.unlocks]
+  // The pop-ups use the sample's unlocks, which a lean (OpenXBL) sample leaves out of its stats.
+  const toasts: ToastItem[] = [...sampleProfile(undefined, { full: true }).unlocks]
     .sort((a, b) => b.score - a.score || (a.rarity ?? 100) - (b.rarity ?? 100))
     .filter((u, i, all) => all.findIndex((v) => v.titleId === u.titleId) === i)
     .slice(0, 6)

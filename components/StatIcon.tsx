@@ -32,6 +32,11 @@ const ICONS: Record<string, [Group, ReactNode]> = {
   backlog: ['shelf', <path d="M4 7h16v4H4zM5 11v9h14v-9M10 14.5h4" />],
   thisyear: ['time', <path d="M4 6h16v14H4zM4 10.5h16M8.5 3.5v4M15.5 3.5v4M8 14.5h2M14 14.5h2M8 17.5h2" />],
   instead: ['time', <path d="M4 8h14.5M15 4.5 18.5 8 15 11.5M20 16H5.5M9 12.5 5.5 16 9 19.5" />],
+  value: ['library', <path d="M3.5 12.5 11 5h8v8l-7.5 7.5zM15.5 8.5h.01" />],
+  costhour: ['library', <path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM14.5 9.2c-.5-.8-1.4-1.2-2.5-1.2-1.4 0-2.5.8-2.5 2s1.1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1.1 0-2-.4-2.5-1.2M12 6.5v11" />],
+  rated: ['complete', <path d="M12 3.5l2.5 5.1 5.6.8-4 4 .9 5.6-5-2.7-5 2.7.9-5.6-4-4 5.6-.8z" />],
+  studios: ['library', <path d="M4 20V9l5-3v14M9 20V4l7 3v13M16 20v-9l4 2v7M3 20h18" />],
+  gamepass: ['score', <path d="M5 5h14v14H5zM9 9h6v6H9z" />],
 };
 
 export function StatIcon({ statKey, className }: { statKey: string; tag?: string; className?: string }) {

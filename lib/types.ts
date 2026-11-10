@@ -29,6 +29,16 @@ export interface Game {
   genres: string[];
   released: number | null;
   achievements: Achievements | null;
+  // From the Xbox store catalogue (lib/catalog.ts), for the games looked up there; null when unknown.
+  developer?: string | null;
+  publisher?: string | null;
+  // Today's US store price (MSRP) in dollars; 0 for free games.
+  price?: number | null;
+  // The store's average player rating out of 5, and how many rated it.
+  rating?: number | null;
+  ratings?: number;
+  // On Game Pass, as the title history says (OpenXBL); null when not known.
+  gamePass?: boolean | null;
 }
 
 // One unlocked achievement, from the player's unlock list (Xbox One and later; newest first).
@@ -61,6 +71,8 @@ export interface XboxProfile {
   unlocksCapped: boolean;
   // True when the player has too many achievements to read their unlock list at all (OpenXBL), so no dates.
   unlocksSkipped?: boolean;
+  // True when the unlock list isn't read at all, to save requests (OpenXBL), so there are no dates.
+  unlocksOff?: boolean;
   // Whether play time or the unlock list couldn't be read (privacy settings).
   playHidden: boolean;
   unlocksHidden: boolean;

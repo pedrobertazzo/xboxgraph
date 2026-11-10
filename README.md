@@ -1,6 +1,6 @@
 # My Gaming Grid for Xbox
 
-Any public Xbox profile as a dashboard. Type a gamertag and its gamerscore, achievements and play time become cards: 23 stats in 8 card types, plus a summary image you can post anywhere.
+Any public Xbox profile as a dashboard. Type a gamertag and its gamerscore, achievements and play time become cards: 28 stats in 8 card types, plus a summary image you can post anywhere.
 
 The Xbox sibling of [My Gaming Grid for Steam](https://steam.morphgrid.io), [for PlayStation](https://psn.morphgrid.io) and [for Chess](https://chess.morphgrid.io), built on [morphgrid](https://www.npmjs.com/package/morphgrid). Drag one card onto another and they swap; each card redraws its stat to suit its new spot.
 
@@ -16,20 +16,22 @@ Microsoft offers websites no open Xbox API. The site reads Xbox Live in one of t
 
 [OpenXBL](https://xbl.io) is an independent Xbox Live API. Sign in at xbl.io with the site's Xbox account, copy the API key, and set it as `OPENXBL_API_KEY`. That's all.
 
-The free plan allows **150 requests an hour** per key ($5/month: 500). A new profile costs **4**, cached for an hour, so about 35 new profiles an hour on the free plan; repeat views cost nothing. When the hour's requests are used up, new lookups say "try again in a few minutes" until it resets.
+The free plan allows **150 requests an hour** per key ($5/month: 500). A new player costs **3**, and **2** once the site has seen their gamertag (gamertag → xuid is remembered for 30 days). Profiles are cached for an hour, so repeat views cost nothing: about 50 new players an hour on the free plan, 75 returning ones. When the hour's requests are used up, new lookups say "try again in a few minutes" until it resets.
 
 | Request | Gives |
 | --- | --- |
-| `GET /v2/friends/search?gt=` | gamertag → xuid, gamerpic, gamerscore, years on Xbox |
-| `GET /v2/titles/{xuid}` | every game played, its achievements and gamerscore, last played, a square tile |
+| `GET /v2/friends/search?gt=` | gamertag → xuid, gamerpic, gamerscore, years on Xbox (skipped for 30 days after) |
+| `GET /v2/titles/{xuid}` | every game played, its achievements and gamerscore, last played, a tile, and whether it's on Game Pass |
 | `POST /v2/player/stats` | `MinutesPlayed` for up to 600 Xbox One, Series X\|S and PC games in one request |
-| `GET /v3/achievements/player/{xuid}` | every achievement of every game, unlocked or not, with unlock times, in one request |
 
-What OpenXBL can't give cheaply:
+### The Xbox store catalogue (free, no key)
 
-- **Rarity** comes only game by game (a request per game), so Rarest achievements and Rarity mix don't appear.
-- **Genres and release dates** aren't in its title history, so Favorite genres and Your gaming eras don't appear, and covers are square tiles rather than box art.
-- **Very big players**: the achievement list is ordered by game, not date, so it's read whole or not at all. Past 12,000 achievements on offer across a player's games (about 12 MB, several seconds) it's skipped, and the calendar, time of day and when-you-start-games cards are left out, with a note saying why.
+Each player's 80 most played games are looked up in Microsoft's public store catalogue (`displaycatalog.mp.microsoft.com`, by Xbox title ID; `lib/catalog.ts`): developer and publisher, genres, release date, today's US list price, the store's player rating, and box art. It needs no key and doesn't count against OpenXBL. Each game is cached for 30 days and shared by every profile, so popular games are looked up once for everyone. That brings back Favorite genres, Your gaming eras and real box art, and adds Library value, Cost per hour, Best rated you play and Favorite studios. Game Pass comes free with the title history.
+
+### What's left out to save requests
+
+- **The unlock list** (when each achievement was unlocked) would be a fourth request: one 1 MB-per-1,000-achievements download, ordered by game rather than by date. Without it there's no Achievement calendar, When you play or When you start games, and Your year counts games by the month they were last played. Set `OPENXBL_READ_UNLOCKS=1` to read it anyway (players with more than 12,000 achievements on offer still skip it).
+- **Rarity** only comes game by game (a request per game), so Rarest achievements and Rarity mix don't appear.
 
 The sample player shows only the stats real profiles get, so the landing page never promises more than a lookup delivers.
 
@@ -94,6 +96,11 @@ Xbox only lists games someone has played, so the Backlog is **hours to finish wh
 | **Time well spent** | Your hours as films, trips to the Moon… | All six | The drive to the Moon |
 | **Backlog** | Hours to 100% everything you started | Quickest wins; ⤢ opens the full list | Quick wins under 5 hours |
 | **Your year** | Gamerscore earned this year (all of last year through January) | Gamerscore per month | Games played, and new |
+| **Library value** | What the games played would cost in the store today (US list price) | Priciest games | The Game Pass share of it |
+| **Cost per hour** | Price per hour played, overall | Best value first | Games under $1 an hour |
+| **Best rated you play** | Games rated 4.5★+ by store players (500+ ratings) | Highest rated first | Share of your rated games |
+| **Favorite studios** | The developer with most of your hours | Hours per studio | The top studio's games |
+| **Game Pass** | Share of your games on Game Pass | Game Pass games by hours | Share of your hours |
 
 Time-of-day stats use the viewer's time zone (sent as a cookie, and in shared links).
 
@@ -107,7 +114,7 @@ Stats need **"Others can see your game and app history"** set to **Everyone**: o
 
 ## Search and landing pages
 
-Search takes a gamertag (classic, or modern with a `#1234` suffix) or a profile link from xbox.com, account.xbox.com, TrueAchievements, XboxAchievements or xboxgamertag.com. Five landing pages target what people search, each filled in from the sample: `/xbox-gamerscore`, `/xbox-play-time`, `/xbox-completion-rate`, `/xbox-backlog` and `/xbox-achievement-calendar`.
+Search takes a gamertag (classic, or modern with a `#1234` suffix) or a profile link from xbox.com, account.xbox.com, TrueAchievements, XboxAchievements or xboxgamertag.com. Six landing pages target what people search, each filled in from the sample: `/xbox-gamerscore`, `/xbox-play-time`, `/xbox-completion-rate`, `/xbox-library-value`, `/xbox-backlog` and `/xbox-achievement-calendar`.
 
 ## Look
 
@@ -129,6 +136,7 @@ npm run peek -- "Some Gamertag"   # print a real profile's stats in the terminal
 | `APP_URL` | Link previews, canonical URLs, sitemap | e.g. `https://xbox.morphgrid.io` |
 | `OPENXBL_API_KEY` | Looking up real players (the easy way) | xbl.io → sign in → API key. Keep it secret. |
 | `OPENXBL_BUDGET` | Optional | Requests an hour to stay under; default 145 (the free plan is 150) |
+| `OPENXBL_READ_UNLOCKS` | Optional | `1` adds the unlock list (a fourth request) for the calendar and time-of-day cards |
 | `XBOX_CLIENT_ID` | Signing in directly instead (optional) | Your Azure app registration, as above |
 | `XBOX_CLIENT_SECRET` | Only for "Web" app registrations | Azure → Certificates & secrets |
 | `XBOX_REDIRECT_URI` | `npm run xbox-login` | Defaults to `http://localhost:8080/auth/callback`; must match the registration |
@@ -148,7 +156,8 @@ app/
   api/search, api/compare    search input → profile or compare page
 lib/
   xbox.ts                    reading Xbox Live through OpenXBL or signed in directly; budget and caching
-  stats.ts                   turns a profile into the 23 stats
+  catalog.ts                 store details (studios, genres, prices, ratings, art) from the public store catalogue
+  stats.ts                   turns a profile into the 28 stats (23 through OpenXBL)
   backlog.ts                 hours to 100%, from the player's pace
   sample.ts                  the made-up sample players
   card.tsx                   the summary image (next/og)

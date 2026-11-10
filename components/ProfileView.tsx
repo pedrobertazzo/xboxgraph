@@ -163,8 +163,10 @@ export async function ProfileView({ id: raw, sp }: { id: string; sp: Search }) {
         {profile.unlocksSkipped && <p className="note busy">This player has more achievements across their games than we can read in one go, so the calendar and when they play are left out.</p>}
         {profile.unlocksHidden && <p className="note busy">Xbox didn’t share this player’s unlocked achievements, so rarity and when they play are hidden.</p>}
         <p className="note">
-          Gamerscore and completion cover every game, Xbox 360 included. Play time covers Xbox One, Series X|S and PC; unlock
-          dates cover {profile.unlocksCapped ? 'the most recent' : 'every'} Xbox One-era achievement. Data is cached for about an hour.
+          Gamerscore and completion cover every game, Xbox 360 included. Play time covers Xbox One, Series X|S and PC
+          {profile.unlocksOff ? '' : `; unlock dates cover ${profile.unlocksCapped ? 'the most recent' : 'every'} Xbox One-era achievement`}. Studios,
+          genres, prices and ratings come from the Xbox store for your most played games; prices are today’s US list prices.
+          Data is cached for about an hour.
         </p>
       </main>
       <Footer />

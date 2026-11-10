@@ -73,3 +73,19 @@ describe('reading Xbox Live', () => {
     expect(secure(null)).toBeNull();
   });
 });
+
+describe('the store catalogue', () => {
+  it('reads studio, genres, date, price, rating and art from a product', async () => {
+    const { parseProduct } = await import('@/lib/catalog');
+    const s = parseProduct({
+      LocalizedProperties: [{ DeveloperName: 'The Coalition', PublisherName: 'Xbox Game Studios', Images: [{ ImagePurpose: 'Poster', Uri: '//store-images.s-microsoft.com/image/x' }] }],
+      Properties: { Category: 'Shooter', Categories: ['Shooter', 'Action & adventure'] },
+      MarketProperties: [{ OriginalReleaseDate: '2019-09-10T01:00:00Z', UsageData: [{ AggregateTimeSpan: 'AllTime', AverageRating: 4.6, RatingCount: 369593 }] }],
+      DisplaySkuAvailabilities: [{ Availabilities: [{ OrderManagementData: { Price: { MSRP: 29.99 } } }] }],
+    });
+    expect(s).toMatchObject({ developer: 'The Coalition', genres: ['Shooter', 'Action & adventure'], price: 29.99, rating: 4.6, ratings: 369593, poster: 'https://store-images.s-microsoft.com/image/x?w=400' });
+    expect(s.released).toBe(Date.parse('2019-09-10T01:00:00Z'));
+    // Undated products carry 9998-12-30.
+    expect(parseProduct({ MarketProperties: [{ OriginalReleaseDate: '9998-12-30T00:00:00Z' }] }).released).toBeNull();
+  });
+});

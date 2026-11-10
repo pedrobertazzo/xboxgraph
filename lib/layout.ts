@@ -38,6 +38,11 @@ const EXTRA_VIEW: Record<string, ViewKey> = {
   instead: 'summary',
   backlog: 'toplist',
   thisyear: 'chart',
+  value: 'highlight',
+  costhour: 'toplist',
+  rated: 'showcase',
+  studios: 'chart',
+  gamepass: 'progress',
 };
 
 export const suits = (key: string): ViewKey => EXTRA_VIEW[key] ?? 'highlight';

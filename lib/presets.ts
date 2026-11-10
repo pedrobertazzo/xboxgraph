@@ -49,8 +49,8 @@ export const PRESETS: Preset[] = [
       {
         title: 'Your Xbox gaming stats',
         rows: [
-          { view: 'highlight', prefer: ['gamerscore', 'achievements', 'playtime', 'finishrate'] },
-          { view: 'showcase', prefer: ['completed', 'top', 'rarest', 'biggest'] },
+          { view: 'highlight', prefer: ['gamerscore', 'playtime', 'value', 'finishrate'] },
+          { view: 'showcase', prefer: ['completed', 'top', 'rated', 'rarest'] },
         ],
       },
       {
@@ -58,7 +58,7 @@ export const PRESETS: Preset[] = [
         rows: [
           { view: 'heatmap', prefer: ['calendar'] },
           { view: 'radial', prefer: ['when', 'genres', 'rarity', 'platforms'] },
-          { view: 'chart', prefer: ['thisyear', 'eras', 'scorerate'] },
+          { view: 'chart', prefer: ['thisyear', 'studios', 'eras', 'scorerate'] },
           { view: 'toplist', prefer: ['backlog'] },
           { view: 'heatmap', prefer: ['starts'] },
         ],
@@ -66,9 +66,9 @@ export const PRESETS: Preset[] = [
       {
         title: 'Deep cuts',
         rows: [
-          { view: 'toplist', prefer: ['almost', 'recent', 'oneanddone'] },
-          { view: 'progress', prefer: ['completion'] },
-          { view: 'summary', prefer: ['instead'] },
+          { view: 'toplist', prefer: ['almost', 'costhour', 'recent', 'oneanddone'] },
+          { view: 'progress', prefer: ['completion', 'achievements', 'gamepass'] },
+          { view: 'summary', prefer: ['instead', 'biggest'] },
         ],
       },
     ],
@@ -84,7 +84,7 @@ export const PRESETS: Preset[] = [
           { view: 'showcase', prefer: ['top'] },
           { view: 'highlight', prefer: ['gamerscore', 'rarest', 'finishrate', 'completion'] },
           { view: 'heatmap', prefer: ['calendar'] },
-          { view: 'summary', prefer: ['instead', 'biggest', 'scorerate'] },
+          { view: 'summary', prefer: ['instead', 'biggest', 'scorerate', 'studios'] },
         ],
       },
       {
@@ -98,7 +98,11 @@ export const PRESETS: Preset[] = [
       },
       {
         title: 'Deep cuts',
-        rows: [{ view: 'toplist', prefer: ['almost', 'recent', 'completed', 'oneanddone'] }],
+        rows: [
+          { view: 'toplist', prefer: ['almost', 'recent', 'completed', 'oneanddone'] },
+          { view: 'progress', prefer: ['gamepass', 'value', 'costhour'] },
+          { view: 'showcase', prefer: ['rated'] },
+        ],
       },
     ],
   },
@@ -112,19 +116,20 @@ export const PRESETS: Preset[] = [
         rows: [
           { view: 'highlight', prefer: ['gamerscore', 'achievements', 'playtime', 'finishrate'] },
           { view: 'progress', prefer: ['completion', 'oneanddone', 'scorerate', 'almost'] },
-          { view: 'summary', prefer: ['instead', 'recent', 'biggest'] },
+          { view: 'summary', prefer: ['instead', 'recent', 'biggest', 'studios'] },
         ],
       },
       {
         title: 'How you play',
         rows: [
-          { view: 'chart', prefer: ['thisyear', 'eras', 'rarest'] },
+          { view: 'chart', prefer: ['thisyear', 'eras', 'rarest', 'value'] },
           { view: 'heatmap', prefer: ['calendar', 'starts'] },
           { view: 'radial', prefer: ['when', 'genres', 'rarity', 'platforms'] },
           { view: 'toplist', prefer: ['backlog'] },
+          { view: 'toplist', prefer: ['gamepass', 'costhour'] },
         ],
       },
-      { title: 'Highlights', rows: [{ view: 'showcase', prefer: ['completed', 'top'] }] },
+      { title: 'Highlights', rows: [{ view: 'showcase', prefer: ['completed', 'top', 'rated'] }] },
     ],
   },
 ];

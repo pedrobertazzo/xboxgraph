@@ -1,3 +1,4 @@
+import { enrich } from './catalog';
 import { env } from './env';
 import { cached, pause, pausedUntil, read, spendOne, used, write } from './store';
 import type { Achievements, Game, Platform, Unlock, XboxProfile } from './types';
@@ -276,6 +277,7 @@ export type TitleLike = {
   titleHistory?: { lastTimePlayed?: string };
   images?: { url: string; type: string }[];
   detail?: { genres?: string[]; releaseDate?: string };
+  gamePass?: { isGamePass?: boolean } | null;
 };
 
 // The title history also holds apps (Netflix, Spotify, the Xbox app…), typed "App"; only games are kept. Don't go by
@@ -312,6 +314,7 @@ export function toGame(t: TitleLike): Game {
     genres: (t.detail?.genres ?? []).filter((g) => g && !/^(?:Other|Classics)$/i.test(g)),
     released: time(t.detail?.releaseDate),
     achievements,
+    gamePass: typeof t.gamePass?.isGamePass === 'boolean' ? t.gamePass.isGamePass : null,
   };
 }
 
@@ -358,9 +361,10 @@ const PAGES = 2;
 const PLAY_BATCH: Record<Source, number> = { openxbl: 600, direct: 200 };
 const PLAY_MAX = 600;
 // OpenXBL's achievement list holds every achievement of every game played, unlocked or not, ordered by game rather
-// than by date, so it's read whole or not at all. About 1 MB and under a second per 1,000; past this many it gets too
-// slow for a page (25,000 took 30 seconds), and those players go without unlock dates.
+// than by date, so it's read whole or not at all: about 1 MB and a second per 1,000, and a fourth request. It's off
+// unless OPENXBL_READ_UNLOCKS=1; without it there's no calendar, time of day or when-you-start-games.
 const OXBL_ACHIEVEMENTS = 12_000;
+const OXBL_UNLOCKS = process.env.OPENXBL_READ_UNLOCKS === '1';
 
 type ProfileUser = { id: string; settings: { id: string; value: string }[] };
 type Stats = { statlistscollection?: { stats?: { name: string; titleid: string; value?: string }[] }[] };
@@ -369,11 +373,20 @@ type UnlockPage = { achievements?: (UnlockLike & { progressState?: string })[]; 
 // The four reads behind a profile, from OpenXBL or straight from Xbox Live. Both give Xbox Live's own shapes.
 const READS = {
   openxbl: {
-    user: async (gt: string) => (await oxbl<{ profileUsers?: ProfileUser[] }>(`/v2/friends/search?gt=${encodeURIComponent(gt)}`)).profileUsers?.[0],
+    // Gamertag → xuid is remembered for 30 days, so a returning player costs one request less. The gamerpic and
+    // gamerscore that come with it may be a little old; the gamerscore is checked against the title history.
+    user: (gt: string) =>
+      cached<ProfileUser | false>(`user:${gt.toLowerCase()}`, 30 * 86400_000, async () => {
+        const u = (await oxbl<{ profileUsers?: ProfileUser[] }>(`/v2/friends/search?gt=${encodeURIComponent(gt)}`)).profileUsers?.[0];
+        // Not found isn't remembered, so a gamertag created or changed today works tomorrow.
+        if (!u) throw new XboxError('not_found', 'No Xbox player has that gamertag.');
+        return u;
+      }).then((u) => u || undefined),
     titles: async (xuid: string) => (await oxbl<{ titles?: TitleLike[] }>(`/v2/titles/${xuid}`)).titles ?? [],
     stats: (xuid: string, ids: string[]) => oxbl<Stats>('/v2/player/stats', { method: 'POST', body: { xuids: [xuid], groups: [], stats: ids.map((titleId) => ({ name: 'MinutesPlayed', titleId })) } }),
     // One request: every achievement with its unlock time, but no rarity (that needs a request per game).
     unlocks: async (xuid: string, offered: number) => {
+      if (!OXBL_UNLOCKS) return { list: [], capped: false, skipped: false, off: true };
       if (offered > OXBL_ACHIEVEMENTS) return { list: [], capped: true, skipped: true };
       const r = await oxbl<UnlockPage>(`/v3/achievements/player/${xuid}?maxItems=${OXBL_ACHIEVEMENTS}`);
       return { list: (r.achievements ?? []).filter((a) => a.progressState === 'Achieved'), capped: !!r.pagingInfo?.continuationToken, skipped: false };
@@ -452,6 +465,7 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
   let unlocksHidden = false;
   let unlocksCapped = false;
   let unlocksSkipped = false;
+  let unlocksOff = false;
   // Achievements on offer across every game played, from the title history: how big the full list would be.
   const offered = titles.reduce((s, t) => s + (t.achievement?.totalAchievements ?? 0), 0);
   const unlocking = (async () => {
@@ -459,8 +473,10 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
     unlocks = r.list.map(toUnlock).filter((u): u is Unlock => !!u);
     unlocksCapped = r.capped;
     unlocksSkipped = r.skipped;
+    unlocksOff = 'off' in r;
   })();
-  const [played, unlocked] = await Promise.allSettled([playing, unlocking]);
+  // Store details (genres, dates, studios, prices, ratings, box art) don't count against the Xbox budget.
+  const [played, unlocked] = await Promise.allSettled([playing, unlocking, enrich(games)]);
   for (const r of [played, unlocked]) if (r.status === 'rejected' && r.reason instanceof XboxError && r.reason.code === 'busy') throw r.reason;
   playHidden = played.status === 'rejected';
   unlocksHidden = unlocked.status === 'rejected';
@@ -476,7 +492,8 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
     name: tag.replace(/#0+$/, ''),
     xuid,
     avatar: secure(set('GameDisplayPicRaw'), 208),
-    gamerscore: Number(set('Gamerscore')) || games.reduce((s, g) => s + (g.achievements?.score ?? 0), 0),
+    // The title history's sum can be newer than a remembered profile; the larger of the two is the current one.
+    gamerscore: Math.max(Number(set('Gamerscore')) || 0, titles.reduce((s, t) => s + (t.achievement?.currentGamerscore ?? 0), 0)),
     tier: set('AccountTier'),
     bio: set('Bio'),
     location: set('Location'),
@@ -485,6 +502,7 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
     unlocks,
     unlocksCapped,
     unlocksSkipped,
+    unlocksOff,
     playHidden,
     unlocksHidden,
   };
