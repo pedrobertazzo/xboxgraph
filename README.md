@@ -92,7 +92,7 @@ Search takes a gamertag (classic, or modern with a `#1234` suffix) or a profile 
 
 ## Look
 
-The feel of the Xbox home screen: near-black charcoal with a soft green glow, frosted tiles with small rounded corners that lift with a white border when you point at them, plain green buttons that turn white on focus, and an "achievement unlocked" pop-up cycling through the sample's best unlocks on the landing page. A curved X (two crescent arms crossing) floats in the hero and the profile banner with rounded tiles: a nod to Xbox in the site's own green and white, with no sphere around it, so it isn't the Xbox logo. The gamerscore coin, 100% medal and rare gem are drawn for this site (`components/Medal.tsx`). Nothing uses the Xbox logo, Microsoft's fonts or its artwork.
+The feel of the Xbox home screen: near-black charcoal with a soft green glow, frosted tiles with small rounded corners that lift with a white border when you point at them, plain green buttons that turn white on focus, and an "achievement unlocked" pop-up cycling through the sample's best unlocks on the landing page. A bold X with curved arms that flare at the tips floats in the hero and the profile banner with rounded tiles: a nod to Xbox drawn for this site, never inside a sphere, so it isn't the Xbox logo. The gamerscore coin, 100% medal and rare gem are drawn for this site (`components/Medal.tsx`). Nothing uses the Xbox logo, Microsoft's fonts or its artwork.
 
 The sample player's games are made up; their covers are illustrated SVGs in `public/sample/`.
 

@@ -1,9 +1,9 @@
-// A curved X (two crescent arms crossing) and tilted rounded tiles, in the site's own white and green. The X nods to
-// Xbox without copying its logo: no sphere around it, our own curves, and one colour.
+// A bold X with curved arms that flare at the tips, and tilted rounded tiles, in the site's own white and green. The X
+// nods to Xbox without copying its logo: it's drawn for this site and never sits in a sphere.
 export type ShapeKind = 'mark' | 'tile' | 'ring';
 
-// Each arm is a crescent, pointed at both ends and full in the middle, bowing away from the other arm.
-const ARMS = ['M22 10Q76 22 88 90Q38 66 22 10Z', 'M78 10Q24 22 12 90Q62 66 78 10Z'];
+// One filled outline: four arms pinched at the centre, curving out to wide, rounded tips.
+const MARK = 'M12 14C30 10 44 30 50 40 56 30 70 10 88 14 84 32 62 44 58 50 62 56 84 68 88 86 70 90 56 70 50 60 44 70 30 90 12 86 16 68 38 56 42 50 38 44 16 32 12 14Z';
 
 export function Shape({ kind, className, style }: { kind: ShapeKind; className?: string; style?: React.CSSProperties }) {
   return (
@@ -13,7 +13,7 @@ export function Shape({ kind, className, style }: { kind: ShapeKind; className?:
       ) : kind === 'ring' ? (
         <circle cx="50" cy="50" r="36" fill="none" stroke="currentColor" strokeWidth="6" />
       ) : (
-        ARMS.map((d) => <path key={d} d={d} fill="currentColor" style={{ fillOpacity: 'var(--fill, 0.14)' }} stroke="currentColor" strokeWidth="3.5" strokeLinejoin="round" />)
+        <path d={MARK} fill="currentColor" />
       )}
     </svg>
   );

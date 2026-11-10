@@ -1658,9 +1658,9 @@ body::before {
 .shape-field .shape.big { color: rgba(255, 255, 255, 0.85); filter: drop-shadow(0 0 16px rgba(95, 211, 95, 0.45)); }
 .shape-field .shape.small { color: rgba(150, 230, 150, 0.6); filter: drop-shadow(0 0 8px rgba(95, 211, 95, 0.35)); }
 .shape-field .shape.tile.big { color: rgba(150, 230, 150, 0.75); }
-.shape-field .shape.mark.big { color: #fff; --fill: 0.92; filter: drop-shadow(0 0 28px rgba(95, 211, 95, 0.75)); }
-.shape-field .shape.mark.small { --fill: 0.5; }
-.banner-shapes .shape.mark { color: rgba(170, 235, 170, 0.28); --fill: 0.35; }
+.shape-field .shape.mark.big { color: #fff; filter: drop-shadow(0 0 30px rgba(95, 211, 95, 0.8)); }
+.shape-field .shape.mark.small { color: rgba(110, 215, 110, 0.75); }
+.banner-shapes .shape.mark { color: rgba(170, 235, 170, 0.16); }
 .toast-stage { position: absolute; left: 50%; bottom: 18%; transform: translateX(-50%); width: min(420px, 92%); display: flex; justify-content: center; pointer-events: none; }
 .toast { display: flex; align-items: center; gap: 0; height: 64px; padding-right: 0; border-radius: 999px; background: rgba(18, 20, 18, 0.92); backdrop-filter: blur(14px); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 18px 44px rgba(0, 0, 0, 0.55); overflow: hidden; max-width: 64px; animation: toast-open 4.2s cubic-bezier(0.3, 1.1, 0.4, 1) both; }
 .toast-coin { flex: none; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #1f9e1f, #0b4f0b); animation: toast-pop 4.2s ease both; }
