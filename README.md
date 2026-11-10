@@ -33,14 +33,14 @@ To connect it: Vercel → your project → **Storage → Create Database → Ups
 
 Xbox Live limits each signed-in user per service and answers 429 with a Retry-After. All server copies share one count (with the shared cache on) and stay under 300 requests per 15 minutes (`XBOX_BUDGET` changes it); after a 429 every request waits out the Retry-After, at least a minute.
 
-A new profile costs **4 to 9 requests**, cached for an hour:
+A new profile costs **4 to 6 requests**, cached for an hour:
 
 | Request | Gives |
 | --- | --- |
 | `profile.xboxlive.com` | gamertag → xuid, gamerpic, gamerscore, years on Xbox |
 | `titlehub.xboxlive.com` title history | every game played, its achievements and gamerscore, last played, art, genres, release date |
 | `userstats.xboxlive.com` batch | `MinutesPlayed` for Xbox One, Series X\|S and PC games, 200 games a request (up to 600) |
-| `achievements.xboxlive.com` | unlocked achievements with unlock time, gamerscore and rarity, 1,000 a page, up to 5,000 |
+| `achievements.xboxlive.com` | unlocked achievements with unlock time, gamerscore and rarity, 1,000 a page, up to 2,000 |
 
 Apps in the title history (Netflix, Spotify…) are dropped. Xbox 360 games count toward gamerscore, achievements and completion, but Xbox shares no play time, unlock dates or rarity for them.
 

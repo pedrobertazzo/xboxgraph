@@ -81,7 +81,7 @@ export const TOPICS: Topic[] = [
     sections: [
       ['Rarity from Xbox itself', 'Every achievement on Xbox One and later carries the share of players who have it. We sort yours by it, rarest first.'],
       ['Rare, very rare, ultra rare', 'Xbox calls an achievement rare when 10% of players or fewer have it. The Rarity mix splits yours further: under 1%, under 5%, under 10%, under 30% and the rest.'],
-      ['Up to 5,000 unlocks', 'We read your 5,000 most recent achievements, which covers the whole Xbox One era for most players.'],
+      ['Your 2,000 most recent unlocks', 'We read your 2,000 most recent achievements, which covers years of play for most players and every day of the calendar.'],
     ],
     stats: [
       ['rarest', 'Your rarest achievements, with the share of players who have each one.'],

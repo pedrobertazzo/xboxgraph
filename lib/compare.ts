@@ -26,7 +26,7 @@ export function compareRows(ps: XboxProfile[]): Row[] {
       label: 'Rare achievements (10% or fewer)',
       values: ps.map((p) => p.unlocks.filter((u) => u.rarity != null && u.rarity <= 10).length),
       display: [],
-      note: ps.some((p) => p.unlocksHidden || p.unlocksCapped) ? 'Counts up to each player’s 5,000 most recent unlocks.' : undefined,
+      note: ps.some((p) => p.unlocksHidden || p.unlocksCapped) ? 'Counts up to each player’s 2,000 most recent unlocks.' : undefined,
     },
     { key: 'hours', label: 'Hours played', values: ps.map(hours), display: [], note: ps.some((p) => p.playHidden) ? 'Some players hide their play time.' : undefined },
     { key: 'games', label: 'Games started', values: ps.map((p) => started(p).length), display: [] },

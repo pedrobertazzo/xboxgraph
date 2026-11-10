@@ -403,7 +403,7 @@ function starts(p: XboxProfile, now: number): Stat | null {
       return { label: String(y), value: n, display: nf(n) };
     }),
     progress: { value: byMonth[peak], max: dates.length, label: `${pct(byMonth[peak], dates.length)}% of your games were started in ${MONTHS[peak]}` },
-    line: `${MONTHS[peak]} is your month for new games: ${plural(byMonth[peak], 'game')} got their first achievement in ${MONTHS[peak]} across the years, of ${nf(dates.length)} in all.${p.unlocksCapped ? ' Your oldest unlocks are past the 5,000 read, so early years are cut short.' : ''}`,
+    line: `${MONTHS[peak]} is your month for new games: ${plural(byMonth[peak], 'game')} got their first achievement in ${MONTHS[peak]} across the years, of ${nf(dates.length)} in all.${p.unlocksCapped ? ' Your oldest unlocks are past the 2,000 read, so early years are cut short.' : ''}`,
     heat: { rows: yrs.length, cols: 12, values, rowLabels: yrs.map(String), colLabels: MONTHS.map((m) => m[0]), tips },
   };
 }

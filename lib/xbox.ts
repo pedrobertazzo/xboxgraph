@@ -60,8 +60,8 @@ export function inputProblem(raw: string): string {
 // Xbox Live limits each signed-in user per service (titles, achievements, stats, profiles) and answers 429 with a
 // Retry-After when a burst is too fast. All server copies share one count (in Redis, when connected) and stay under a
 // conservative overall budget; after a 429 every request waits out the Retry-After (at least a minute). A new profile
-// costs 4 to 9 requests: the profile, the title history, play time (200 games a request) and the unlock list (1,000
-// achievements a page, up to 5 pages).
+// costs 4 to 6 requests: the profile, the title history, play time (200 games a request) and the unlock list (1,000
+// achievements a page, up to 2 pages).
 
 const WINDOW = 15 * 60_000;
 export const BUDGET = Number(process.env.XBOX_BUDGET) || 300;
@@ -321,7 +321,7 @@ export function attachUnlocks(games: Game[], unlocks: Unlock[]) {
 }
 
 const SETTINGS = ['Gamertag', 'ModernGamertag', 'ModernGamertagSuffix', 'UniqueModernGamertag', 'GameDisplayPicRaw', 'Gamerscore', 'AccountTier', 'XboxOneRep', 'Bio', 'Location', 'TenureLevel'];
-const PAGES = 5;
+const PAGES = 2;
 const PLAY_BATCH = 200;
 const PLAY_MAX = 600;
 
@@ -374,7 +374,8 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
     playHidden = true;
   }
 
-  // Unlocked achievements, newest first, with their rarity: up to 5,000.
+  // Unlocked achievements, newest first, with their rarity: up to 2,000, which covers time of day and the
+  // calendar for nearly everyone; heavy hunters' oldest unlocks are left out.
   const unlocks: Unlock[] = [];
   let unlocksHidden = false;
   let unlocksCapped = false;

@@ -165,7 +165,7 @@ export default async function CompareView({ params }: Props) {
         )}
 
         <p className="note">
-          Comparisons use gamerscore, completion, play time and up to 5,000 recent unlocks per player.{' '}
+          Comparisons use gamerscore, completion, play time and up to 2,000 recent unlocks per player.{' '}
           <Link href={`/compare?${ps.map((p) => `p=${encodeURIComponent(p.id)}`).join('&')}`}>Change players</Link>
         </p>
       </main>

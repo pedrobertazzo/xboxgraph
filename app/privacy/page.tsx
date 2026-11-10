@@ -34,7 +34,7 @@ export default function Privacy() {
           <li>Profile basics: gamertag, gamerpic, gamerscore and years on Xbox.</li>
           <li>The game history: every game played, its achievement and gamerscore totals, when it was last played, and its genres and release date from the Xbox store.</li>
           <li>Play time per game, for Xbox One, Series X|S and PC games.</li>
-          <li>Unlocked achievements (up to the 5,000 most recent): each one’s name, gamerscore, unlock time and rarity.</li>
+          <li>Unlocked achievements (up to the 2,000 most recent): each one’s name, gamerscore, unlock time and rarity.</li>
         </ul>
         <p>
           From this we calculate the stats on the page, such as your finish rate or hours left in your backlog. Xbox only
