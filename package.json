@@ -1,0 +1,31 @@
+{
+  "name": "mygaminggrid-xbox",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "peek": "tsx scripts/peek.ts",
+    "xbox-login": "tsx scripts/xbox-login.ts"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.41.0",
+    "@vercel/analytics": "^2.0.1",
+    "morphgrid": "^0.4.0",
+    "next": "^16.4.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  }
+}
