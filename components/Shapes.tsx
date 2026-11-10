@@ -1,14 +1,9 @@
-// Gamepad face letters (A, B, X, Y) as plain outlined rings, and tilted rounded tiles, in the site's own white and
-// green. They nod to a controller and a console's home screen without copying either: one colour, never in the
-// controller's diamond, and no logos.
-export type ShapeKind = 'a' | 'b' | 'x' | 'y' | 'tile' | 'ring';
+// A curved X (two crescent arms crossing) and tilted rounded tiles, in the site's own white and green. The X nods to
+// Xbox without copying its logo: no sphere around it, our own curves, and one colour.
+export type ShapeKind = 'mark' | 'tile' | 'ring';
 
-const LETTER: Record<'a' | 'b' | 'x' | 'y', string> = {
-  a: 'M38 66 50 32l12 34M42.5 55h15',
-  b: 'M41 32v36M41 32h10a8 8 0 0 1 0 16H41M41 48h12a10 10 0 0 1 0 20H41',
-  x: 'M38 34l24 32M62 34 38 66',
-  y: 'M38 32l12 18 12-18M50 50v18',
-};
+// Each arm is a crescent, pointed at both ends and full in the middle, bowing away from the other arm.
+const ARMS = ['M22 10Q76 22 88 90Q38 66 22 10Z', 'M78 10Q24 22 12 90Q62 66 78 10Z'];
 
 export function Shape({ kind, className, style }: { kind: ShapeKind; className?: string; style?: React.CSSProperties }) {
   return (
@@ -18,10 +13,7 @@ export function Shape({ kind, className, style }: { kind: ShapeKind; className?:
       ) : kind === 'ring' ? (
         <circle cx="50" cy="50" r="36" fill="none" stroke="currentColor" strokeWidth="6" />
       ) : (
-        <>
-          <circle cx="50" cy="50" r="38" fill="none" stroke="currentColor" strokeWidth="5" />
-          <path d={LETTER[kind]} fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
-        </>
+        ARMS.map((d) => <path key={d} d={d} fill="currentColor" style={{ fillOpacity: 'var(--fill, 0.14)' }} stroke="currentColor" strokeWidth="3.5" strokeLinejoin="round" />)
       )}
     </svg>
   );
@@ -31,14 +23,13 @@ export function Shape({ kind, className, style }: { kind: ShapeKind; className?:
 // browser draw the same thing.
 const FIELD: [ShapeKind, number, number, number, number, number][] = [
   // kind, left %, top %, size px, rotation deg, delay s
-  ['tile', 8, 12, 150, -8, 0],
-  ['a', 54, 4, 170, 0, 1.2],
-  ['tile', 66, 50, 140, 12, 0.6],
-  ['y', 16, 58, 120, -6, 1.8],
-  ['ring', 4, 78, 60, 0, 2.4],
-  ['x', 40, 40, 64, 0, 3],
-  ['b', 86, 20, 70, 6, 1.5],
-  ['tile', 84, 78, 52, -12, 2.1],
+  ['tile', 6, 12, 140, -8, 0],
+  ['mark', 44, 2, 260, 0, 1.2],
+  ['tile', 70, 54, 130, 12, 0.6],
+  ['mark', 12, 60, 90, -10, 1.8],
+  ['ring', 4, 80, 56, 0, 2.4],
+  ['mark', 86, 18, 64, 8, 1.5],
+  ['tile', 86, 80, 50, -12, 2.1],
 ];
 
 export function ShapeField() {

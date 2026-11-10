@@ -176,7 +176,7 @@ function BannerShapes() {
   return (
     <div className="banner-shapes" aria-hidden>
       <Shape kind="tile" style={{ right: '30%', top: '-30%', width: 180, height: 180, transform: 'rotate(-8deg)' }} />
-      <Shape kind="a" style={{ right: '12%', top: '20%', width: 210, height: 210 }} />
+      <Shape kind="mark" style={{ right: '17%', top: '-12%', width: 210, height: 210 }} />
       <Shape kind="tile" style={{ right: '44%', top: '45%', width: 110, height: 110, transform: 'rotate(10deg)' }} />
       <Shape kind="ring" style={{ right: '-2%', top: '-25%', width: 150, height: 150 }} />
     </div>
