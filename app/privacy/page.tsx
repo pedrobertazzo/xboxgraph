@@ -29,12 +29,15 @@ export default function Privacy() {
         </p>
 
         <h2>What we show about players</h2>
-        <p>When someone looks up a gamertag, the site reads, through its own Xbox account:</p>
+        <p>
+          When someone looks up a gamertag, the site reads the following through OpenXBL (xbl.io), an independent Xbox Live API
+          service that passes the request to Xbox and back, or through its own Xbox account:
+        </p>
         <ul>
           <li>Profile basics: gamertag, gamerpic, gamerscore and years on Xbox.</li>
           <li>The game history: every game played, its achievement and gamerscore totals, when it was last played, and its genres and release date from the Xbox store.</li>
           <li>Play time per game, for Xbox One, Series X|S and PC games.</li>
-          <li>Unlocked achievements (up to the 2,000 most recent): each one’s name, gamerscore, unlock time and rarity.</li>
+          <li>Unlocked achievements: each one’s name, gamerscore and unlock time (and rarity, when available).</li>
         </ul>
         <p>
           From this we calculate the stats on the page, such as your finish rate or hours left in your backlog. Xbox only

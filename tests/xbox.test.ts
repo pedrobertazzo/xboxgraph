@@ -24,6 +24,8 @@ describe('reading Xbox Live', () => {
     expect(platformsOf(['XboxSeries', 'XboxOne', 'PC', 'Win32', 'Xbox360', 'iOS', 'Unknown'])).toEqual(['Series X|S', 'Xbox One', 'PC', 'Xbox 360', 'Mobile']);
     expect(isGame({ titleId: '1', name: 'Netflix', type: 'App' })).toBe(false);
     expect(isGame({ titleId: '1', name: 'Halo', type: 'Game' })).toBe(true);
+    // Xbox files nearly every modern game as mediaItemType "Application"; those are games.
+    expect(isGame({ titleId: '1', name: 'Forza', type: 'Game', mediaItemType: 'Application' })).toBe(true);
   });
 
   it('turns a title into a game with its achievements and art', () => {
@@ -59,6 +61,8 @@ describe('reading Xbox Live', () => {
     })!;
     expect(u).toMatchObject({ titleId: '42', score: 50, rarity: 0.8, at: Date.UTC(2026, 9, 1, 21, 15) });
     expect(toUnlock({ name: 'Locked', titleAssociations: [{ id: 1 }], progression: { timeUnlocked: '' } })).toBeNull();
+    // OpenXBL lists locked achievements too, dated 0001-01-01.
+    expect(toUnlock({ name: 'Locked', titleAssociations: [{ id: 1 }], progression: { timeUnlocked: '0001-01-01T00:00:00.0000000Z' } })).toBeNull();
     const g = toGame({ titleId: '42', name: 'G', achievement: { currentGamerscore: 50, totalGamerscore: 1000 } });
     attachUnlocks([g], [u, { ...u, at: Date.UTC(2026, 0, 1) }]);
     expect([g.firstUnlock, g.lastUnlock]).toEqual([Date.UTC(2026, 0, 1), u.at]);

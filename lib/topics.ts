@@ -48,50 +48,25 @@ export const TOPICS: Topic[] = [
     slug: 'xbox-play-time',
     title: 'Xbox Play Time: How Many Hours Have You Played?',
     description:
-      'See how many hours you’ve played on Xbox, game by game: total play time, most played games, favourite genres, gamerscore per hour and your hours in perspective. Free, no sign-in.',
+      'See how many hours you’ve played on Xbox, game by game: total play time, most played games, gamerscore per hour and your hours in perspective. Free, no sign-in.',
     h1: 'How many hours have you played on Xbox?',
     lede:
-      'Type a gamertag and see total play time across Xbox One, Series X|S and PC, your most played games, the genres your hours go to and what all that time adds up to.',
+      'Type a gamertag and see total play time across Xbox One, Series X|S and PC, your most played games and what all that time adds up to.',
     sections: [
       ['Every hour, added up', 'Xbox keeps play time per game. This dashboard adds it all up, ranks your games by hours and puts it in perspective, in films, audiobooks and trips to the Moon.'],
       ['Xbox One and later', 'Xbox records play time for Xbox One, Series X|S and PC games. Xbox 360 games still show their gamerscore, but no hours.'],
-      ['What your hours go to', 'Your favourite genres and the decades your games come from, weighted by the hours you put in.'],
+      ['Where the hours go', 'Your most played games, how much gamerscore an hour brings you, and the games you dropped after an achievement or two.'],
     ],
     stats: [
       ['playtime', 'Total hours, and your top games by hours.'],
       ['top', 'Your most played game, with its hours and gamerscore.'],
-      ['genres', 'The genres your play time goes to, from each game’s main genre on the Xbox store.'],
-      ['eras', 'The decades your games come from, by hours.'],
+      ['scorerate', 'How much gamerscore an hour of play brings you, and which games give it fastest.'],
       ['instead', 'Your hours as films, drives across the US, trips to the Moon and more.'],
     ],
     faq: [
       ['How do I see my total play time on Xbox?', 'Type your gamertag in the search box. The dashboard adds up the play time Xbox records for each of your games.'],
       ['Why is play time missing?', `Either the games are Xbox 360 games, which have no play time, or the player’s game history is private. ${PRIVACY}`],
       ['Does Game Pass count?', 'Yes. Every game you’ve played counts, however you got it.'],
-    ],
-  },
-  {
-    slug: 'rarest-xbox-achievements',
-    title: 'Your Rarest Xbox Achievements and Rarity Stats',
-    description:
-      'Find your rarest Xbox achievements: the ones fewest players have, how many of yours are rare, ultra rare or common, and what share of your unlocks are rare. Free, no sign-in.',
-    h1: 'Your rarest Xbox achievements',
-    lede:
-      'Type a gamertag and see the achievements fewest players have, with their rarity, and how your unlocks split from ultra rare to common.',
-    sections: [
-      ['Rarity from Xbox itself', 'Every achievement on Xbox One and later carries the share of players who have it. We sort yours by it, rarest first.'],
-      ['Rare, very rare, ultra rare', 'Xbox calls an achievement rare when 10% of players or fewer have it. The Rarity mix splits yours further: under 1%, under 5%, under 10%, under 30% and the rest.'],
-      ['Your 2,000 most recent unlocks', 'We read your 2,000 most recent achievements, which covers years of play for most players and every day of the calendar.'],
-    ],
-    stats: [
-      ['rarest', 'Your rarest achievements, with the share of players who have each one.'],
-      ['rarity', 'Your unlocks split by rarity, and the share that are rare.'],
-      ['calendar', 'The days you unlocked something in the last six months.'],
-    ],
-    faq: [
-      ['How is rarity worked out?', 'Xbox reports, for each achievement, the share of the game’s players who have unlocked it. We show that figure as it is.'],
-      ['Why don’t my Xbox 360 achievements show up?', 'Xbox only reports rarity and unlock dates for Xbox One, Series X|S and PC achievements. Xbox 360 games still count toward your gamerscore and completion.'],
-      ['Why does it say the game history is private?', PRIVACY],
     ],
   },
   {

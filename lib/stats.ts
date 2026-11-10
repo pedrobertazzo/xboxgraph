@@ -122,6 +122,7 @@ function almost(p: XboxProfile): Stat | null {
   if (!list.length) return null;
   const first = list[0];
   const leftText = (x: (typeof list)[number]) => (x.n ? plural(x.n, 'achievement') : fmtG(x.left));
+  const leftFull = (x: (typeof list)[number]) => (x.n ? `${plural(x.n, 'achievement')} (${fmtG(x.left)})` : fmtG(x.left));
   return {
     key: 'almost',
     title: 'Almost 100%',
@@ -132,7 +133,7 @@ function almost(p: XboxProfile): Stat | null {
     progress: { value: first.g.achievements!.progress, max: 100, label: `${first.g.title}: ${leftText(first)} to go` },
     cover: { label: first.g.title, ...art(first.g) },
     line:
-      `${first.g.title} is ${first.g.achievements!.progress}% done, ${leftText(first)} (${fmtG(first.left)}) short of 100%.` +
+      `${first.g.title} is ${first.g.achievements!.progress}% done, ${leftFull(first)} short of 100%.` +
       (list.length > 1 ? ` ${list.length - 1} more ${list.length > 2 ? 'games are' : 'game is'} at 70% or better.` : ''),
   };
 }
@@ -679,7 +680,7 @@ function thisYear(p: XboxProfile, now: number): Stat | null {
     progress: { value: freshGames.length, max: playedThen.length, label: `${plural(playedThen.length, 'game')} played, ${nf(freshGames.length)} new` },
     line:
       `${review ? `In ${y}` : `So far in ${y}`}: ${fmtG(score)} from ${plural(yearUnlocks.length, 'achievement')} across ${plural(playedThen.length, 'game')}, ${nf(freshGames.length)} of them new` +
-      (score && busiest.value ? `. Best month: ${busiest.label}, ${busiest.display}` : '') +
+      (score && busiest.value ? `. Best month: ${busiest.label}, ${fmtG(busiest.value)}` : '') +
       '.' +
       (review ? ` From February this card shows ${y + 1} so far.` : ''),
   };

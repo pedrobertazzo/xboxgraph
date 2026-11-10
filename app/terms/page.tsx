@@ -35,7 +35,7 @@ export default function Terms() {
 
         <h2>Xbox data</h2>
         <p>
-          Stats come from Xbox Live, read with the site’s own account. They can be incomplete, delayed or wrong (for example,
+          Stats come from Xbox Live, read through OpenXBL or the site’s own account. They can be incomplete, delayed or wrong (for example,
           rarity and unlock dates only cover Xbox One-era achievements, and play time doesn’t exist for Xbox 360 games), and
           the site may stop working if Xbox changes. Don’t rely on them for
           anything important.

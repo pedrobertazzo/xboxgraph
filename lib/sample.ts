@@ -1,4 +1,4 @@
-import { attachUnlocks } from './xbox';
+import { attachUnlocks, source } from './xbox';
 import type { Game, Platform, Unlock, XboxProfile } from './types';
 
 // A made-up achievement hunter playing real games, so the landing page and /profile/sample need no Xbox Live calls.
@@ -113,6 +113,11 @@ export function sampleProfile(now = Date.now()): XboxProfile {
   });
   unlocks.sort((a, b) => b.at - a.at);
   attachUnlocks(games, unlocks);
+  // Through OpenXBL real profiles have no rarity, genres or release dates, so the sample shows none either.
+  if (source() === 'openxbl') {
+    for (const u of unlocks) u.rarity = null;
+    for (const g of games) Object.assign(g, { genres: [], released: null });
+  }
   return {
     id: 'sample',
     name: 'SampleHunter',

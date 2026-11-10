@@ -59,6 +59,8 @@ export interface XboxProfile {
   unlocks: Unlock[];
   // True when the unlock list was cut at its cap, so the oldest unlocks are missing.
   unlocksCapped: boolean;
+  // True when the player has too many achievements to read their unlock list at all (OpenXBL), so no dates.
+  unlocksSkipped?: boolean;
   // Whether play time or the unlock list couldn't be read (privacy settings).
   playHidden: boolean;
   unlocksHidden: boolean;

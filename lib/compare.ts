@@ -31,6 +31,8 @@ export function compareRows(ps: XboxProfile[]): Row[] {
     { key: 'hours', label: 'Hours played', values: ps.map(hours), display: [], note: ps.some((p) => p.playHidden) ? 'Some players hide their play time.' : undefined },
     { key: 'games', label: 'Games started', values: ps.map((p) => started(p).length), display: [] },
   ];
+  // Without rarity (OpenXBL) every player counts 0 rare achievements: the row says nothing, so it goes.
+  if (ps.every((p) => !p.unlocks.some((u) => u.rarity != null))) rows.splice(rows.findIndex((r) => r.key === 'rare'), 1);
   for (const r of rows) r.display = r.values.map((v) => (r.key === 'completion' ? `${v}%` : r.key === 'gamerscore' ? `${nf(v)}G` : nf(v)));
   return rows;
 }

@@ -25,7 +25,7 @@ const SECTIONS: DashSection[] = [
     ],
   },
 ];
-const START = fillRows(allRows(SECTIONS), [['gamerscore', 'rarest', 'finishrate'], ['almost', 'completed']]);
+const START = fillRows(allRows(SECTIONS), [['gamerscore', 'playtime', 'finishrate'], ['almost', 'completed']]);
 
 // A short script the board plays while nobody touches it, like the morphgrid.io hero: each step drops a card into
 // the other row, where it redraws, and the next step puts it back.

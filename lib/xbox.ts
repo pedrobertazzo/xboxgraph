@@ -56,21 +56,30 @@ export function inputProblem(raw: string): string {
   return 'That isn’t a valid gamertag: use letters, digits and single spaces, starting with a letter or digit.';
 }
 
-// ———————————————————————————————————————— Request budget
-// Xbox Live limits each signed-in user per service (titles, achievements, stats, profiles) and answers 429 with a
-// Retry-After when a burst is too fast. All server copies share one count (in Redis, when connected) and stay under a
-// conservative overall budget; after a 429 every request waits out the Retry-After (at least a minute). A new profile
-// costs 4 to 6 requests: the profile, the title history, play time (200 games a request) and the unlock list (1,000
-// achievements a page, up to 2 pages).
+// ———————————————————————————————————————— Where Xbox data comes from
+// OpenXBL (xbl.io) when OPENXBL_API_KEY is set: one key, no sign-in to set up. Otherwise the site signs in to Xbox Live
+// itself as a helper Microsoft account (Azure app + refresh token, see the README).
 
-const WINDOW = 15 * 60_000;
-export const BUDGET = Number(process.env.XBOX_BUDGET) || 300;
+export type Source = 'openxbl' | 'direct';
+export const source = (): Source => (env.openxblKey ? 'openxbl' : 'direct');
+
+// ———————————————————————————————————————— Request budget
+// OpenXBL allows 150 requests an hour on its free plan (per key); a new profile costs 4. Signed in directly, Xbox Live
+// limits each user per service and the site keeps to 300 requests per 15 minutes; a new profile costs 4 to 6. All
+// server copies share one count (in Redis, when connected), and after a 429 every request waits it out (at least a
+// minute). Either budget can be changed with OPENXBL_BUDGET or XBOX_BUDGET.
+
+const LIMITS: Record<Source, { window: number; budget: number }> = {
+  openxbl: { window: 60 * 60_000, budget: Number(process.env.OPENXBL_BUDGET) || 145 },
+  direct: { window: 15 * 60_000, budget: Number(process.env.XBOX_BUDGET) || 300 },
+};
 
 async function remaining() {
-  return BUDGET - (await used(WINDOW));
+  const l = LIMITS[source()];
+  return l.budget - (await used(l.window));
 }
 
-export const budgetState = async () => ({ remaining: await remaining(), blocked: Date.now() < (await pausedUntil()) });
+export const budgetState = async () => ({ source: source(), budget: LIMITS[source()].budget, remaining: await remaining(), blocked: Date.now() < (await pausedUntil()) });
 
 class HttpError extends Error {
   constructor(public status: number, public retryAfter: number | null) {
@@ -81,7 +90,7 @@ class HttpError extends Error {
 async function spend<T>(call: () => Promise<T>): Promise<T> {
   if (Date.now() < (await pausedUntil()) || (await remaining()) <= 0)
     throw new XboxError('busy', 'My Gaming Grid has used its Xbox requests for now. Try again in a few minutes; profiles viewed recently still work.');
-  await spendOne(WINDOW);
+  await spendOne(LIMITS[source()].window);
   try {
     return await call();
   } catch (e) {
@@ -91,6 +100,27 @@ async function spend<T>(call: () => Promise<T>): Promise<T> {
     }
     throw e;
   }
+}
+
+// ———————————————————————————————————————— OpenXBL
+// Every answer comes wrapped as { content, code }. X-RateLimit-Remaining says how much of the key's hour is left; at 0
+// the site pauses new reads for ten minutes rather than collecting 429s.
+
+async function oxbl<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+  return spend(async () => {
+    const r = await fetch(`https://api.xbl.io${path}`, {
+      method: init.method ?? 'GET',
+      signal: AbortSignal.timeout(45_000),
+      headers: { 'X-Authorization': env.openxblKey, Accept: 'application/json', 'Accept-Language': 'en-US', ...(init.body ? { 'Content-Type': 'application/json' } : {}) },
+      body: init.body ? JSON.stringify(init.body) : undefined,
+      cache: 'no-store',
+    });
+    if (r.headers.get('x-ratelimit-remaining') === '0') await pause(10 * 60_000);
+    if (r.status === 401) throw new XboxError('auth', 'This site’s OpenXBL key was refused. The site owner needs to check OPENXBL_API_KEY.');
+    if (!r.ok) throw new HttpError(r.status, Number(r.headers.get('retry-after')) || null);
+    const j = (await r.json()) as { content?: T } & T;
+    return (j && typeof j === 'object' && 'content' in j ? j.content : j) as T;
+  });
 }
 
 // ———————————————————————————————————————— Sign-in
@@ -248,10 +278,10 @@ export type TitleLike = {
   detail?: { genres?: string[]; releaseDate?: string };
 };
 
-// The title history also holds apps (Netflix, Spotify, the Xbox app…); only games are kept.
+// The title history also holds apps (Netflix, Spotify, the Xbox app…), typed "App"; only games are kept. Don't go by
+// mediaItemType: Xbox files nearly every modern game as "Application" there.
 export function isGame(t: TitleLike): boolean {
-  if (t.type && t.type !== 'Game') return false;
-  return !/^(?:Application|App|Video|Music)$/i.test(t.mediaItemType ?? '');
+  return !t.type || t.type === 'Game';
 }
 
 export function toGame(t: TitleLike): Game {
@@ -296,6 +326,8 @@ type UnlockLike = {
 
 export function toUnlock(u: UnlockLike): Unlock | null {
   const at = time(u.progression?.timeUnlocked);
+  // Locked achievements carry the date 0001-01-01.
+  if (at != null && at < Date.UTC(2005, 0, 1)) return null;
   const titleId = u.titleAssociations?.[0]?.id;
   if (!at || titleId == null) return null;
   const score = Number(u.rewards?.find((r) => r.type === 'Gamerscore')?.value ?? 0) || 0;
@@ -322,26 +354,74 @@ export function attachUnlocks(games: Game[], unlocks: Unlock[]) {
 
 const SETTINGS = ['Gamertag', 'ModernGamertag', 'ModernGamertagSuffix', 'UniqueModernGamertag', 'GameDisplayPicRaw', 'Gamerscore', 'AccountTier', 'XboxOneRep', 'Bio', 'Location', 'TenureLevel'];
 const PAGES = 2;
-const PLAY_BATCH = 200;
+// MinutesPlayed for this many games per request: OpenXBL takes them all at once; Xbox Live, 200.
+const PLAY_BATCH: Record<Source, number> = { openxbl: 600, direct: 200 };
 const PLAY_MAX = 600;
+// OpenXBL's achievement list holds every achievement of every game played, unlocked or not, ordered by game rather
+// than by date, so it's read whole or not at all. About 1 MB and under a second per 1,000; past this many it gets too
+// slow for a page (25,000 took 30 seconds), and those players go without unlock dates.
+const OXBL_ACHIEVEMENTS = 12_000;
+
+type ProfileUser = { id: string; settings: { id: string; value: string }[] };
+type Stats = { statlistscollection?: { stats?: { name: string; titleid: string; value?: string }[] }[] };
+type UnlockPage = { achievements?: (UnlockLike & { progressState?: string })[]; pagingInfo?: { continuationToken?: string | null } };
+
+// The four reads behind a profile, from OpenXBL or straight from Xbox Live. Both give Xbox Live's own shapes.
+const READS = {
+  openxbl: {
+    user: async (gt: string) => (await oxbl<{ profileUsers?: ProfileUser[] }>(`/v2/friends/search?gt=${encodeURIComponent(gt)}`)).profileUsers?.[0],
+    titles: async (xuid: string) => (await oxbl<{ titles?: TitleLike[] }>(`/v2/titles/${xuid}`)).titles ?? [],
+    stats: (xuid: string, ids: string[]) => oxbl<Stats>('/v2/player/stats', { method: 'POST', body: { xuids: [xuid], groups: [], stats: ids.map((titleId) => ({ name: 'MinutesPlayed', titleId })) } }),
+    // One request: every achievement with its unlock time, but no rarity (that needs a request per game).
+    unlocks: async (xuid: string, offered: number) => {
+      if (offered > OXBL_ACHIEVEMENTS) return { list: [], capped: true, skipped: true };
+      const r = await oxbl<UnlockPage>(`/v3/achievements/player/${xuid}?maxItems=${OXBL_ACHIEVEMENTS}`);
+      return { list: (r.achievements ?? []).filter((a) => a.progressState === 'Achieved'), capped: !!r.pagingInfo?.continuationToken, skipped: false };
+    },
+  },
+  direct: {
+    user: async (gt: string) =>
+      (await xbl<{ profileUsers: ProfileUser[] }>(`https://profile.xboxlive.com/users/gt(${encodeURIComponent(gt)})/profile/settings?settings=${SETTINGS.join(',')}`, '3')).profileUsers[0],
+    titles: async (xuid: string) =>
+      (await xbl<{ titles: TitleLike[] }>(`https://titlehub.xboxlive.com/users/xuid(${xuid})/titles/titlehistory/decoration/achievement,image,detail?maxItems=5000`, '2')).titles ?? [],
+    stats: (xuid: string, ids: string[]) =>
+      xbl<Stats>('https://userstats.xboxlive.com/batch', '2', { method: 'POST', body: { arrangebyfield: 'xuid', xuids: [xuid], groups: [], stats: ids.map((titleId) => ({ name: 'MinutesPlayed', titleId })) } }),
+    // Unlocked only, newest first, with rarity: up to 2,000, which covers time of day and the calendar for nearly
+    // everyone; heavy hunters' oldest unlocks are left out.
+    unlocks: async (xuid: string, _offered: number) => {
+      const list: UnlockLike[] = [];
+      let token: string | null = null;
+      for (let page = 0; page < PAGES; page++) {
+        const q = new URLSearchParams({ unlockedOnly: 'true', maxItems: '1000', orderBy: 'UnlockTime' });
+        if (token) q.set('continuationToken', token);
+        const r: UnlockPage = await xbl<UnlockPage>(`https://achievements.xboxlive.com/users/xuid(${xuid})/achievements?${q}`, '2');
+        list.push(...(r.achievements ?? []));
+        token = r.pagingInfo?.continuationToken ?? null;
+        if (!token) return { list, capped: false, skipped: false };
+      }
+      return { list, capped: true, skipped: false };
+    },
+  },
+};
 
 async function readProfile(gamertag: string): Promise<XboxProfile> {
+  const read = READS[source()];
   // The profile: gamertag → xuid, picture and gamerscore.
-  let user: { id: string; settings: { id: string; value: string }[] };
+  let user: ProfileUser | undefined;
   try {
-    const r = await xbl<{ profileUsers: typeof user[] }>(`https://profile.xboxlive.com/users/gt(${encodeURIComponent(gamertag)})/profile/settings?settings=${SETTINGS.join(',')}`, '3');
-    user = r.profileUsers[0];
+    user = await read.user(gamertag);
   } catch (e) {
     if (e instanceof XboxError) throw e;
-    throw new XboxError('not_found', 'No Xbox player has that gamertag.');
+    if (e instanceof HttpError && e.status >= 500) throw new XboxError('upstream', 'Xbox didn’t answer. Try again in a moment.');
   }
-  const set = (k: string) => user.settings.find((s) => s.id === k)?.value || null;
+  if (!user) throw new XboxError('not_found', 'No Xbox player has that gamertag.');
+  const set = (k: string) => user!.settings.find((s) => s.id === k)?.value || null;
   const xuid = user.id;
 
-  // Every title the player has played, with its achievement summary, art, genres and release date.
+  // Every title the player has played, with its achievement summary (and, signed in directly, art, genres and dates).
   let titles: TitleLike[];
   try {
-    titles = (await xbl<{ titles: TitleLike[] }>(`https://titlehub.xboxlive.com/users/xuid(${xuid})/titles/titlehistory/decoration/achievement,image,detail?maxItems=5000`, '2')).titles ?? [];
+    titles = await read.titles(xuid);
   } catch (e) {
     if (e instanceof XboxError) throw e;
     if (e instanceof HttpError && (e.status === 403 || e.status === 401)) throw new XboxError('private', 'This player’s game history is private.');
@@ -349,54 +429,41 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
   }
   const games = titles.filter(isGame).map(toGame);
 
-  // Play time, for Xbox One, Series X|S and PC games, most recently played first.
+  // Play time, for Xbox One, Series X|S and PC games, most recently played first; and the unlocked achievements.
+  // The two don't depend on each other, so they're read at the same time.
   let playHidden = false;
   const timed = games
     .filter((g) => g.platforms.some((p) => p !== 'Xbox 360' && p !== 'Mobile'))
     .sort((a, b) => (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0))
     .slice(0, PLAY_MAX);
   const byId = new Map(games.map((g) => [g.id, g]));
-  try {
-    for (let i = 0; i < timed.length; i += PLAY_BATCH) {
-      const batch = timed.slice(i, i + PLAY_BATCH);
-      const r = await xbl<{ statlistscollection?: { stats?: { name: string; titleid: string; value?: string }[] }[] }>('https://userstats.xboxlive.com/batch', '2', {
-        method: 'POST',
-        body: { arrangebyfield: 'xuid', xuids: [xuid], groups: [], stats: batch.map((g) => ({ name: 'MinutesPlayed', titleId: g.id })) },
-      });
+  const batch = PLAY_BATCH[source()];
+  const playing = (async () => {
+    for (let i = 0; i < timed.length; i += batch) {
+      const r = await read.stats(xuid, timed.slice(i, i + batch).map((g) => g.id));
       for (const s of r.statlistscollection?.[0]?.stats ?? []) {
         const g = byId.get(String(s.titleid));
         const min = Number(s.value);
         if (g && s.name === 'MinutesPlayed' && min > 0) g.playMin = min;
       }
     }
-  } catch (e) {
-    if (e instanceof XboxError && e.code === 'busy') throw e;
-    playHidden = true;
-  }
-
-  // Unlocked achievements, newest first, with their rarity: up to 2,000, which covers time of day and the
-  // calendar for nearly everyone; heavy hunters' oldest unlocks are left out.
-  const unlocks: Unlock[] = [];
+  })();
+  let unlocks: Unlock[] = [];
   let unlocksHidden = false;
   let unlocksCapped = false;
-  try {
-    let token: string | null = null;
-    for (let page = 0; page < PAGES; page++) {
-      const q = new URLSearchParams({ unlockedOnly: 'true', maxItems: '1000', orderBy: 'UnlockTime' });
-      if (token) q.set('continuationToken', token);
-      const r = await xbl<{ achievements: UnlockLike[]; pagingInfo?: { continuationToken?: string | null } }>(`https://achievements.xboxlive.com/users/xuid(${xuid})/achievements?${q}`, '2');
-      for (const a of r.achievements ?? []) {
-        const u = toUnlock(a);
-        if (u) unlocks.push(u);
-      }
-      token = r.pagingInfo?.continuationToken ?? null;
-      if (!token) break;
-      if (page === PAGES - 1) unlocksCapped = true;
-    }
-  } catch (e) {
-    if (e instanceof XboxError && e.code === 'busy') throw e;
-    unlocksHidden = !unlocks.length;
-  }
+  let unlocksSkipped = false;
+  // Achievements on offer across every game played, from the title history: how big the full list would be.
+  const offered = titles.reduce((s, t) => s + (t.achievement?.totalAchievements ?? 0), 0);
+  const unlocking = (async () => {
+    const r = await read.unlocks(xuid, offered);
+    unlocks = r.list.map(toUnlock).filter((u): u is Unlock => !!u);
+    unlocksCapped = r.capped;
+    unlocksSkipped = r.skipped;
+  })();
+  const [played, unlocked] = await Promise.allSettled([playing, unlocking]);
+  for (const r of [played, unlocked]) if (r.status === 'rejected' && r.reason instanceof XboxError && r.reason.code === 'busy') throw r.reason;
+  playHidden = played.status === 'rejected';
+  unlocksHidden = unlocked.status === 'rejected';
   unlocks.sort((a, b) => b.at - a.at);
   attachUnlocks(games, unlocks);
   // Icons are only shown for the rarest; dropping the rest keeps a big profile small enough for the shared cache.
@@ -417,6 +484,7 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
     games,
     unlocks,
     unlocksCapped,
+    unlocksSkipped,
     playHidden,
     unlocksHidden,
   };

@@ -22,6 +22,11 @@ describe('compare', () => {
     expect(leaders([{ key: 'x', label: 'x', values: [0, 0], display: [] }])).toEqual([null]);
   });
 
+  it('drops the rare row when no player has rarity (OpenXBL)', () => {
+    const strip = (p: typeof a) => ({ ...p, unlocks: p.unlocks.map((u) => ({ ...u, rarity: null })) });
+    expect(compareRows([strip(a), strip(b)]).map((r) => r.key)).not.toContain('rare');
+  });
+
   it('lists the games both players have achievements in, with each one’s progress', () => {
     const shared = sharedGames([a, b]);
     expect(shared.length).toBeGreaterThan(3);

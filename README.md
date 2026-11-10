@@ -8,32 +8,43 @@ Planned home: **xbox.morphgrid.io**.
 
 ## How it reads Xbox
 
-Microsoft offers websites no open Xbox API, so the site reads Xbox Live the way the Xbox app does, signed in as **one helper Microsoft account**. Visitors never sign in; they type a gamertag and see what Xbox already shows to anyone who looks that player up.
+Microsoft offers websites no open Xbox API. The site reads Xbox Live in one of two ways, picked by which keys are set. Either way, visitors never sign in; they type a gamertag and see what Xbox already shows to anyone who looks that player up.
 
-> **Use a separate Microsoft account made just for this site, never your main one.** If Microsoft ever restricts the reading account, everything on it goes with it. With a throwaway account, the worst case is making a new one.
+> **Use a separate Microsoft account made just for this site, never your main one.** Both ways read Xbox as one account. If Microsoft ever restricts it, everything on it goes with it; with a throwaway account, the worst case is making a new one.
 
-The server signs in through an Azure app registration and a refresh token:
+### OpenXBL (the default: one key, two minutes)
+
+[OpenXBL](https://xbl.io) is an independent Xbox Live API. Sign in at xbl.io with the site's Xbox account, copy the API key, and set it as `OPENXBL_API_KEY`. That's all.
+
+The free plan allows **150 requests an hour** per key ($5/month: 500). A new profile costs **4**, cached for an hour, so about 35 new profiles an hour on the free plan; repeat views cost nothing. When the hour's requests are used up, new lookups say "try again in a few minutes" until it resets.
+
+| Request | Gives |
+| --- | --- |
+| `GET /v2/friends/search?gt=` | gamertag → xuid, gamerpic, gamerscore, years on Xbox |
+| `GET /v2/titles/{xuid}` | every game played, its achievements and gamerscore, last played, a square tile |
+| `POST /v2/player/stats` | `MinutesPlayed` for up to 600 Xbox One, Series X\|S and PC games in one request |
+| `GET /v3/achievements/player/{xuid}` | every achievement of every game, unlocked or not, with unlock times, in one request |
+
+What OpenXBL can't give cheaply:
+
+- **Rarity** comes only game by game (a request per game), so Rarest achievements and Rarity mix don't appear.
+- **Genres and release dates** aren't in its title history, so Favorite genres and Your gaming eras don't appear, and covers are square tiles rather than box art.
+- **Very big players**: the achievement list is ordered by game, not date, so it's read whole or not at all. Past 12,000 achievements on offer across a player's games (about 12 MB, several seconds) it's skipped, and the calendar, time of day and when-you-start-games cards are left out, with a note saying why.
+
+The sample player shows only the stats real profiles get, so the landing page never promises more than a lookup delivers.
+
+### Signed in directly (optional: every stat, higher limits)
+
+Without `OPENXBL_API_KEY`, the server signs in to Xbox Live itself through an Azure app registration. It costs nothing but needs a one-time Azure sign-up (Microsoft asks for a phone and card to verify you), and it brings back rarity, genres, eras and box art.
 
 1. Create a free Microsoft account for the site, and sign in to xbox.com with it once so it has a gamertag.
 2. In the [Azure portal](https://portal.azure.com) → **App registrations → New registration**: any name, **Personal Microsoft accounts only**, redirect URI type **Public client/native (mobile & desktop)** with `http://localhost:8080/auth/callback`. Under **Authentication**, turn on **Allow public client flows**. Copy the **Application (client) ID**.
    (A **Web** redirect works too; then also create a client secret and set `XBOX_CLIENT_SECRET`.)
-3. Put `XBOX_CLIENT_ID=…` in `.env.local`, run `npm run xbox-login`, open the link it prints and sign in with the helper account. It prints `XBOX_REFRESH_TOKEN=…`: add that to `.env.local` and to Vercel.
+3. Put `XBOX_CLIENT_ID=…` in `.env.local`, run `npm run xbox-login`, open the link it prints and sign in with the helper account. It prints `XBOX_REFRESH_TOKEN=…`: add that to `.env.local` and to Vercel, and remove `OPENXBL_API_KEY`.
 
 The server swaps the refresh token for a Microsoft access token, then an Xbox Live user token, then an XSTS token (about 16 hours). Microsoft issues a new refresh token on each refresh; with the shared cache on, the newest one is kept there, so the one in the environment doesn't go stale. If sign-in ever fails, profile pages say so; run `npm run xbox-login` again.
 
-### The shared cache
-
-Vercel runs several copies of the server, each with its own memory. With **Upstash Redis** connected, they share one cache, one request count and the sign-in tokens, so a profile is read from Xbox once for everyone. Without it the app still works, with a memory cache per copy.
-
-Open `/api/status` to check: whether the shared cache is connected, how many Xbox requests are left in the current 15 minutes, and whether sign-in is configured (never the tokens).
-
-To connect it: Vercel → your project → **Storage → Create Database → Upstash for Redis**, connect it to the project, then redeploy. Vercel adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`. Entries over 900 KB stay in memory only (the free plan caps entries at 1 MB); unlock icons are dropped except for the 40 rarest to keep profiles small.
-
-### Staying under Xbox's limits
-
-Xbox Live limits each signed-in user per service and answers 429 with a Retry-After. All server copies share one count (with the shared cache on) and stay under 300 requests per 15 minutes (`XBOX_BUDGET` changes it); after a 429 every request waits out the Retry-After, at least a minute.
-
-A new profile costs **4 to 6 requests**, cached for an hour:
+Signed in directly, the site keeps under 300 requests per 15 minutes (`XBOX_BUDGET` changes it), and a new profile costs 4 to 6:
 
 | Request | Gives |
 | --- | --- |
@@ -42,7 +53,15 @@ A new profile costs **4 to 6 requests**, cached for an hour:
 | `userstats.xboxlive.com` batch | `MinutesPlayed` for Xbox One, Series X\|S and PC games, 200 games a request (up to 600) |
 | `achievements.xboxlive.com` | unlocked achievements with unlock time, gamerscore and rarity, 1,000 a page, up to 2,000 |
 
-Apps in the title history (Netflix, Spotify…) are dropped. Xbox 360 games count toward gamerscore, achievements and completion, but Xbox shares no play time, unlock dates or rarity for them.
+Either way, after a 429 every request waits out the Retry-After (at least a minute), and Microsoft's own per-account limits apply on top. Apps in the title history (Netflix, Spotify…) are dropped; note that Xbox files nearly every modern game as "Application", so games are told apart by their type, not that field. Xbox 360 games count toward gamerscore, achievements and completion, but Xbox shares no play time, unlock dates or rarity for them.
+
+### The shared cache
+
+Vercel runs several copies of the server, each with its own memory. With **Upstash Redis** connected, they share one cache, one request count and the sign-in tokens, so a profile is read from Xbox once for everyone. Without it the app still works, with a memory cache per copy.
+
+Open `/api/status` to check: which way the site reads Xbox, whether the shared cache is connected, how many requests are left in the current window, and whether a key is configured (never the key itself).
+
+To connect it: Vercel → your project → **Storage → Create Database → Upstash for Redis**, connect it to the project, then redeploy. Vercel adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`. Entries over 900 KB stay in memory only (the free plan caps entries at 1 MB); unlock icons are dropped except for the 40 rarest to keep profiles small.
 
 ### The Backlog
 
@@ -88,7 +107,7 @@ Stats need **"Others can see your game and app history"** set to **Everyone**: o
 
 ## Search and landing pages
 
-Search takes a gamertag (classic, or modern with a `#1234` suffix) or a profile link from xbox.com, account.xbox.com, TrueAchievements, XboxAchievements or xboxgamertag.com. Six landing pages target what people search, each filled in from the sample: `/xbox-gamerscore`, `/xbox-play-time`, `/rarest-xbox-achievements`, `/xbox-completion-rate`, `/xbox-backlog` and `/xbox-achievement-calendar`.
+Search takes a gamertag (classic, or modern with a `#1234` suffix) or a profile link from xbox.com, account.xbox.com, TrueAchievements, XboxAchievements or xboxgamertag.com. Five landing pages target what people search, each filled in from the sample: `/xbox-gamerscore`, `/xbox-play-time`, `/xbox-completion-rate`, `/xbox-backlog` and `/xbox-achievement-calendar`.
 
 ## Look
 
@@ -102,17 +121,18 @@ The sample player is made up but plays real games: titles, genres and box art co
 npm install
 cp .env.example .env.local     # the sample works without sign-in
 npm run dev                    # http://localhost:3000, sample at /profile/sample
-npm run xbox-login             # once, for XBOX_REFRESH_TOKEN
 npm run peek -- "Some Gamertag"   # print a real profile's stats in the terminal
 ```
 
 | Variable | Needed for | Where to get it |
 | --- | --- | --- |
 | `APP_URL` | Link previews, canonical URLs, sitemap | e.g. `https://xbox.morphgrid.io` |
-| `XBOX_CLIENT_ID` | Looking up real players | Your Azure app registration, as above |
+| `OPENXBL_API_KEY` | Looking up real players (the easy way) | xbl.io → sign in → API key. Keep it secret. |
+| `OPENXBL_BUDGET` | Optional | Requests an hour to stay under; default 145 (the free plan is 150) |
+| `XBOX_CLIENT_ID` | Signing in directly instead (optional) | Your Azure app registration, as above |
 | `XBOX_CLIENT_SECRET` | Only for "Web" app registrations | Azure → Certificates & secrets |
 | `XBOX_REDIRECT_URI` | `npm run xbox-login` | Defaults to `http://localhost:8080/auth/callback`; must match the registration |
-| `XBOX_REFRESH_TOKEN` | Looking up real players | `npm run xbox-login`. Keep it secret; it can act as the helper account. |
+| `XBOX_REFRESH_TOKEN` | Signing in directly | `npm run xbox-login`. Keep it secret; it can act as the helper account. |
 | `OPTED_OUT_GAMERTAGS` | Opt-outs | Gamertags, comma-separated |
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | The shared cache (optional, recommended) | Set when you connect Upstash for Redis on Vercel |
 
@@ -127,7 +147,7 @@ app/
   compare/                   two to four players side by side
   api/search, api/compare    search input → profile or compare page
 lib/
-  xbox.ts                    sign-in, request budget, caching, reading Xbox Live
+  xbox.ts                    reading Xbox Live through OpenXBL or signed in directly; budget and caching
   stats.ts                   turns a profile into the 23 stats
   backlog.ts                 hours to 100%, from the player's pace
   sample.ts                  the made-up sample players

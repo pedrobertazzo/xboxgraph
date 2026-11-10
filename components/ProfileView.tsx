@@ -160,10 +160,11 @@ export async function ProfileView({ id: raw, sp }: { id: string; sp: Search }) {
         {!sample && <RememberProfile id={profile.id} name={profile.name} avatar={profile.avatar} />}
 
         {profile.playHidden && <p className="note busy">Xbox didn’t share this player’s play time, so hours are hidden.</p>}
+        {profile.unlocksSkipped && <p className="note busy">This player has more achievements across their games than we can read in one go, so the calendar and when they play are left out.</p>}
         {profile.unlocksHidden && <p className="note busy">Xbox didn’t share this player’s unlocked achievements, so rarity and when they play are hidden.</p>}
         <p className="note">
-          Gamerscore and completion cover every game, Xbox 360 included. Play time covers Xbox One, Series X|S and PC; rarity and
-          dates cover {profile.unlocksCapped ? 'the 2,000 most recent' : 'every'} Xbox One-era achievement. Data is cached for about an hour.
+          Gamerscore and completion cover every game, Xbox 360 included. Play time covers Xbox One, Series X|S and PC; unlock
+          dates cover {profile.unlocksCapped ? 'the most recent' : 'every'} Xbox One-era achievement. Data is cached for about an hour.
         </p>
       </main>
       <Footer />
