@@ -58,7 +58,7 @@ export function TopicPage({ t }: { t: Topic }) {
         <section className="topic-stats" aria-labelledby="ts-title">
           <h2 id="ts-title">What you’ll see</h2>
           <p className="topic-note">
-            Filled in from our <Link href="/profile/sample">sample player</Link> and their made-up games; yours will show your own.
+            Filled in from our <Link href="/profile/sample">sample player</Link>: real games, made-up progress. Yours will show your own.
           </p>
           <div className="topic-grid">
             {shown.map(({ s, about }) => (

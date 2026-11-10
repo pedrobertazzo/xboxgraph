@@ -23,6 +23,11 @@ export async function firstOk(urls: (string | null | undefined)[]) {
       const r = await fetch(u, { method: 'HEAD', next: { revalidate: 86400 } });
       if (r.ok) return u;
     } catch {}
+    // Some image hosts (Microsoft's store CDN) refuse HEAD; ask for one byte instead.
+    try {
+      const r = await fetch(u, { headers: { Range: 'bytes=0-0' }, next: { revalidate: 86400 } });
+      if (r.ok || r.status === 206) return u;
+    } catch {}
   }
   return null;
 }
