@@ -76,6 +76,11 @@ export interface XboxProfile {
   // Whether play time or the unlock list couldn't be read (privacy settings).
   playHidden: boolean;
   unlocksHidden: boolean;
+  // When it was read from Xbox, and whether this is an older saved copy shown while Xbox lookups are paused.
+  fetchedAt?: number;
+  stale?: boolean;
+  // With a stale copy: when Xbox lookups should have room again.
+  retryAt?: number;
 }
 
 export interface Entry {

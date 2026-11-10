@@ -70,3 +70,15 @@ describe('shared store', () => {
     expect(await a.used(W, start + W / 2)).toBeCloseTo(5);
   });
 });
+
+describe('when there is room again', () => {
+  it('is now with room, later once the window slides past enough requests', async () => {
+    const { roomAt, spendOne } = await import('@/lib/store');
+    const W = 60 * 60_000;
+    const start = 1000 * W; // the start of a window bucket
+    for (let i = 0; i < 4; i++) await spendOne(W, start + 1000);
+    expect(await roomAt(W, 10, 3, start + 2000)).toBe(start + 2000);
+    // 4 spent, budget 5, 3 needed: room once 2 of those 4 have slid out, halfway through the next window.
+    expect(await roomAt(W, 5, 3, start + 2000)).toBe(start + W + W / 2);
+  });
+});

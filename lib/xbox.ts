@@ -1,11 +1,14 @@
 import { enrich } from './catalog';
 import { env } from './env';
-import { cached, pause, pausedUntil, read, spendOne, used, write } from './store';
+import { cached, pause, pausedUntil, read, read as readStore, roomAt, spendOne, used, write } from './store';
 import type { Achievements, Game, Platform, Unlock, XboxProfile } from './types';
 
 export class XboxError extends Error {
-  constructor(public code: 'not_found' | 'private' | 'upstream' | 'bad_input' | 'busy' | 'auth', message: string) {
+  // For 'busy': when there should be room again.
+  retryAt?: number;
+  constructor(public code: 'not_found' | 'private' | 'upstream' | 'bad_input' | 'busy' | 'auth', message: string, retryAt?: number) {
     super(message);
+    this.retryAt = retryAt;
   }
 }
 
@@ -88,16 +91,29 @@ class HttpError extends Error {
   }
 }
 
+const BUSY = 'My Gaming Grid has used its Xbox requests for now. Try again in a few minutes; profiles viewed recently still work.';
+
+// When `need` more requests will fit: after any pause, and once enough of the window has slid by.
+async function retryAt(need: number) {
+  const l = LIMITS[source()];
+  return Math.max(await pausedUntil(), await roomAt(l.window, l.budget, need));
+}
+
+// A profile only starts when all of its requests fit, so none are spent on one that can't finish.
+async function ensureRoom(need: number) {
+  if (Date.now() < (await pausedUntil()) || (await remaining()) < need) throw new XboxError('busy', BUSY, await retryAt(need));
+}
+
 async function spend<T>(call: () => Promise<T>): Promise<T> {
-  if (Date.now() < (await pausedUntil()) || (await remaining()) <= 0)
-    throw new XboxError('busy', 'My Gaming Grid has used its Xbox requests for now. Try again in a few minutes; profiles viewed recently still work.');
+  if (Date.now() < (await pausedUntil()) || (await remaining()) <= 0) throw new XboxError('busy', BUSY, await retryAt(1));
   await spendOne(LIMITS[source()].window);
   try {
     return await call();
   } catch (e) {
     if (e instanceof HttpError && e.status === 429) {
-      await pause(Math.max(60_000, (e.retryAfter ?? 60) * 1000));
-      throw new XboxError('busy', 'Xbox asked us to slow down. Try again in a minute or two.');
+      const wait = Math.max(60_000, (e.retryAfter ?? 60) * 1000);
+      await pause(wait);
+      throw new XboxError('busy', 'Xbox asked us to slow down. Try again in a minute or two.', Date.now() + wait);
     }
     throw e;
   }
@@ -419,6 +435,8 @@ const READS = {
 
 async function readProfile(gamertag: string): Promise<XboxProfile> {
   const read = READS[source()];
+  // OpenXBL: lookup (unless the xuid is remembered), title history and play time. Directly: up to 6.
+  await ensureRoom(source() === 'openxbl' ? ((await readStore(`user:${gamertag.toLowerCase()}`)) ? 2 : 3) : 4);
   // The profile: gamertag → xuid, picture and gamerscore.
   let user: ProfileUser | undefined;
   try {
@@ -508,6 +526,28 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
   };
 }
 
+const HOUR = 60 * 60_000;
+const DAY = 24 * HOUR;
+
+// A profile is kept for an hour; a copy is also kept for 30 days, shown (marked stale) while Xbox lookups are paused,
+// so a returning visitor sees their dashboard instead of a wait.
+async function load(gt: string, key: string): Promise<XboxProfile> {
+  const hit = await read<XboxProfile>(`profile:${key}`);
+  if (hit) return hit;
+  try {
+    const p = { ...(await readProfile(gt)), fetchedAt: Date.now() };
+    await write(`profile:${key}`, p, HOUR);
+    await write(`last:${key}`, p, 30 * DAY);
+    return p;
+  } catch (e) {
+    if (e instanceof XboxError && e.code === 'busy') {
+      const old = await read<XboxProfile>(`last:${key}`);
+      if (old) return { ...old, stale: true, retryAt: e.retryAt };
+    }
+    throw e;
+  }
+}
+
 // Loads already running are shared, so two visitors opening the same new profile cost one read.
 const inflight = new Map<string, Promise<XboxProfile>>();
 
@@ -517,7 +557,7 @@ export async function getXboxProfile(gamertag: string): Promise<XboxProfile> {
   const key = gt.toLowerCase();
   let p = inflight.get(key);
   if (!p) {
-    p = cached(`profile:${key}`, 60 * 60_000, () => readProfile(gt)).finally(() => inflight.delete(key));
+    p = load(gt, key).finally(() => inflight.delete(key));
     inflight.set(key, p);
   }
   return p;

@@ -1702,3 +1702,17 @@ body::before {
 .banner-wall .tw-tile { opacity: 0.7; }
 .banner-wall .tw-tile.on { transform: none; box-shadow: none; }
 @media (max-width: 720px) { .banner-wall .tw-plane { --s: 70px; left: 40%; } }
+
+/* Waiting for room in the Xbox request budget: a countdown ring and a short note, then the sample to play with. */
+.waiting-hero { max-width: 880px; }
+.waiting { display: flex; align-items: center; gap: 28px; }
+.waiting-ring { position: relative; flex: none; width: 128px; height: 128px; display: grid; place-items: center; }
+.waiting-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.waiting-ring .ring-back { fill: rgba(10, 11, 10, 0.6); stroke: rgba(255, 255, 255, 0.1); stroke-width: 6; }
+.waiting-ring .ring { fill: none; stroke: var(--green); stroke-width: 6; stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(95, 211, 95, 0.8)); transition: stroke-dasharray 1s linear; }
+.waiting-ring b { position: relative; font: 600 26px var(--display); color: #fff; font-variant-numeric: tabular-nums; }
+.waiting-text h1 { margin: 0 0 8px; }
+.waiting-text .lede { margin: 0; }
+.waiting-sub { margin: 48px 0 14px; font: 600 18px var(--display); color: var(--text); }
+.stale-note { margin-bottom: 14px; }
+@media (max-width: 640px) { .waiting { flex-direction: column; align-items: flex-start; gap: 16px; } .waiting-ring { width: 96px; height: 96px; } .waiting-ring b { font-size: 20px; } }

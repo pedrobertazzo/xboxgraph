@@ -16,7 +16,11 @@ Microsoft offers websites no open Xbox API. The site reads Xbox Live in one of t
 
 [OpenXBL](https://xbl.io) is an independent Xbox Live API. Sign in at xbl.io with the site's Xbox account, copy the API key, and set it as `OPENXBL_API_KEY`. That's all.
 
-The free plan allows **150 requests an hour** per key ($5/month: 500). A new player costs **3**, and **2** once the site has seen their gamertag (gamertag → xuid is remembered for 30 days). Profiles are cached for an hour, so repeat views cost nothing: about 50 new players an hour on the free plan, 75 returning ones. When the hour's requests are used up, new lookups say "try again in a few minutes" until it resets.
+The free plan allows **150 requests an hour** per key ($5/month: 500). A new player costs **3**, and **2** once the site has seen their gamertag (gamertag → xuid is remembered for 30 days). Profiles are cached for an hour, so repeat views cost nothing: about 50 new players an hour on the free plan, 75 returning ones. When the hour's requests are used up, nobody sees an error:
+
+- A player seen in the last 30 days gets their **saved dashboard**, with a note saying how old it is; the page updates itself once there's room.
+- A new player gets a **waiting page**: a countdown to when there'll be room (worked out from the request count), their recently viewed players, and the sample dashboard to play with. It loads the real dashboard by itself when the countdown ends.
+- A profile only starts when all of its requests fit, so none are wasted on one that can't finish.
 
 | Request | Gives |
 | --- | --- |

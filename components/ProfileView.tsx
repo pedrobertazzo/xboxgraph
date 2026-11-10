@@ -7,8 +7,10 @@ import { Logo } from './Logo';
 import { Medal, ScoreRing } from './Medal';
 import { TileWall } from './TileWall';
 import { OptedOut } from './OptedOut';
-import { RememberProfile } from './Recent';
+import { RecentProfiles, RememberProfile } from './Recent';
 import { TopSearch } from './TopSearch';
+import { LandingPreview } from './LandingPreview';
+import { StaleRefresh, WaitingCard } from './Waiting';
 import { env } from '@/lib/env';
 import { clockQuery, readClock, readDashState } from '@/lib/layout';
 import { isOptedOut } from '@/lib/optout';
@@ -65,6 +67,36 @@ function Notice({ title, children }: { title: string; children: React.ReactNode 
   );
 }
 
+function ago(t: number | undefined) {
+  if (!t) return 'earlier';
+  const m = Math.round((Date.now() - t) / 60_000);
+  return m < 90 ? `${m} minutes ago` : m < 36 * 60 ? `${Math.round(m / 60)} hours ago` : `${Math.round(m / 1440)} days ago`;
+}
+
+// Shown instead of an error when a new profile can't be read yet: a countdown that loads it by itself, the visitor's
+// recently viewed players, and the sample dashboard to play with meanwhile.
+function WaitingView({ name, retryAt }: { name: string; retryAt: number }) {
+  return (
+    <>
+      <nav className="topbar">
+        <Logo />
+        <span className="topbar-end">
+          <TopSearch />
+        </span>
+      </nav>
+      <main className="landing">
+        <section className="hero waiting-hero">
+          <WaitingCard name={name} retryAt={retryAt} />
+          <RecentProfiles />
+        </section>
+        <h2 className="waiting-sub">While you wait: a sample dashboard. Drag the cards around.</h2>
+        <LandingPreview stats={xboxStats(sampleProfile())} />
+      </main>
+      <Footer />
+    </>
+  );
+}
+
 export async function ProfileView({ id: raw, sp }: { id: string; sp: Search }) {
   const id = decodeURIComponent(raw);
   const sample = id === 'sample';
@@ -75,6 +107,7 @@ export async function ProfileView({ id: raw, sp }: { id: string; sp: Search }) {
     profile = sample ? sampleProfile() : await getXboxProfile(id);
   } catch (e) {
     const err = e instanceof XboxError ? e : null;
+    if (err?.code === 'busy') return <WaitingView name={id} retryAt={err.retryAt ?? Date.now() + 60_000} />;
     if (err?.code === 'private')
       return (
         <Notice title="This game history is private">
@@ -150,6 +183,13 @@ export async function ProfileView({ id: raw, sp }: { id: string; sp: Search }) {
           <ScoreRing score={profile.gamerscore} progress={Math.round(((profile.gamerscore - mile.prev) / (mile.next - mile.prev)) * 100)} club={mile.club} />
         </header>
 
+        {profile.stale && (
+          <p className="note busy stale-note">
+            Xbox lookups are paused for a few minutes, so these are {profile.name}’s stats from <b>{ago(profile.fetchedAt)}</b>. The page
+            updates itself as soon as there’s room.
+            <StaleRefresh retryAt={profile.retryAt ?? Date.now() + 60_000} />
+          </p>
+        )}
         <Dashboard
           stats={stats}
           clock={clock}

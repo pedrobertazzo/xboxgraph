@@ -93,6 +93,18 @@ export async function used(window: number, now = Date.now()): Promise<number> {
   return cur + prev * (1 - into);
 }
 
+// When there will be room for `need` more requests, if nothing else is spent meanwhile: the previous bucket's weight
+// shrinks as the window slides on, and once a bucket ends its count becomes the previous one.
+export async function roomAt(window: number, budget: number, need: number, now = Date.now()): Promise<number> {
+  const bucket = Math.floor(now / window);
+  const into = (now % window) / window;
+  const [cur, prev] = await Promise.all([count(`budget:${bucket}`), count(`budget:${bucket - 1}`)]);
+  const free = budget - need;
+  if (cur + prev * (1 - into) <= free) return now;
+  if (cur <= free && prev > 0) return Math.ceil((bucket + 1 - (free - cur) / prev) * window);
+  return Math.ceil((bucket + 1 + (cur > 0 ? Math.max(0, 1 - free / cur) : 0)) * window);
+}
+
 export async function spendOne(window: number, now = Date.now()) {
   await bump(`budget:${Math.floor(now / window)}`, window * 2);
 }
