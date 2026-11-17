@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Figtree, Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
+import { ScrollReveal } from '@/components/ScrollReveal';
 import 'morphgrid/styles.css';
 import './globals.css';
 import { SITE, SITE_URL } from '@/lib/site';
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${sans.variable} ${display.variable}`}>
       <body>
         {children}
+        <ScrollReveal />
         <Analytics />
       </body>
     </html>
