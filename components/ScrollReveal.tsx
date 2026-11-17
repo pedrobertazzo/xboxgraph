@@ -3,9 +3,11 @@
 import { useEffect } from 'react';
 
 const CARD = '.mg-block';
-// Cards that come into view together rise one after another, this far apart, up to MAX_STAGGER.
-const STAGGER = 70;
-const MAX_STAGGER = 420;
+// A card waits BASE_DELAY after coming into view, so the motion is seen rather than over before the eye lands on it
+// (on a phone, cards come one at a time and fast). Cards that come in together then follow STAGGER apart.
+const BASE_DELAY = 250;
+const STAGGER = 120;
+const MAX_STAGGER = 600;
 
 // Cards rise into place, and their charts draw in, as they scroll into view. Only runs when the browser can watch
 // for that and the visitor hasn't asked for less motion; otherwise nothing is hidden and cards simply show.
@@ -27,11 +29,11 @@ export function ScrollReveal() {
         // Top to bottom, then left to right, so a row of cards ripples across.
         coming.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top || a.getBoundingClientRect().left - b.getBoundingClientRect().left);
         coming.forEach((el, i) => {
-          show(el, Math.min(i * STAGGER, MAX_STAGGER));
+          show(el, BASE_DELAY + Math.min(i * STAGGER, MAX_STAGGER));
           io.unobserve(el);
         });
       },
-      { rootMargin: '0px 0px -8% 0px', threshold: 0.12 },
+      { rootMargin: '0px 0px -12% 0px', threshold: 0.15 },
     );
 
     const watch = (node: ParentNode) => {
