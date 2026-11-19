@@ -37,18 +37,22 @@ const tidy = (s: string) => s.trim().replace(/\s+/g, ' ');
 
 export const validGamertag = (s: string) => GAMERTAG.test(tidy(s));
 
-// Search input to a lower-case gamertag, or null when it isn't one.
+// A gamertag as the site keys it: lower case, and without the "#" of a modern suffix. Xbox shows "Name#1234", but
+// OpenXBL only finds that player as "Name1234" (their classic gamertag), so both spellings are one player and one URL.
+export const gamertagId = (s: string) => tidy(s).replace('#', '').toLowerCase();
+
+// Search input to a gamertag id, or null when it isn't one.
 export function parseGamertag(raw: string): string | null {
   const s = raw.trim();
   for (const re of LINKS) {
     const m = s.match(re);
     if (m) {
       const gt = tidy(decode(m[1]));
-      return GAMERTAG.test(gt) ? gt.toLowerCase() : null;
+      return GAMERTAG.test(gt) ? gamertagId(gt) : null;
     }
   }
   const gt = tidy(s);
-  return GAMERTAG.test(gt) ? gt.toLowerCase() : null;
+  return GAMERTAG.test(gt) ? gamertagId(gt) : null;
 }
 
 export function inputProblem(raw: string): string {
@@ -531,15 +535,21 @@ const DAY = 24 * HOUR;
 
 // A profile is kept for an hour; a copy is also kept for 30 days, shown (marked stale) while Xbox lookups are paused,
 // so a returning visitor sees their dashboard instead of a wait.
+// A gamertag Xbox doesn't know is remembered for ten minutes, so retyping it, or reloading, costs nothing.
+const MISS_TTL = 10 * 60_000;
+const NOT_FOUND = 'No Xbox player has that gamertag.';
+
 async function load(gt: string, key: string): Promise<XboxProfile> {
   const hit = await read<XboxProfile>(`profile:${key}`);
   if (hit) return hit;
+  if (await read<boolean>(`miss:${key}`)) throw new XboxError('not_found', NOT_FOUND);
   try {
     const p = { ...(await readProfile(gt)), fetchedAt: Date.now() };
     await write(`profile:${key}`, p, HOUR);
     await write(`last:${key}`, p, 30 * DAY);
     return p;
   } catch (e) {
+    if (e instanceof XboxError && e.code === 'not_found') await write(`miss:${key}`, true, MISS_TTL);
     if (e instanceof XboxError && e.code === 'busy') {
       const old = await read<XboxProfile>(`last:${key}`);
       if (old) return { ...old, stale: true, retryAt: e.retryAt };
@@ -552,9 +562,10 @@ async function load(gt: string, key: string): Promise<XboxProfile> {
 const inflight = new Map<string, Promise<XboxProfile>>();
 
 export async function getXboxProfile(gamertag: string): Promise<XboxProfile> {
-  const gt = tidy(gamertag);
-  if (!validGamertag(gt)) throw new XboxError('bad_input', inputProblem(gt));
-  const key = gt.toLowerCase();
+  const typed = tidy(gamertag);
+  if (!validGamertag(typed)) throw new XboxError('bad_input', inputProblem(typed));
+  const gt = typed.replace('#', '');
+  const key = gamertagId(gt);
   let p = inflight.get(key);
   if (!p) {
     p = load(gt, key).finally(() => inflight.delete(key));

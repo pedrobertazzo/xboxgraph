@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { loadRecent, type Recent } from './Recent';
 
-// Two to four boxes for gamertags, and recently viewed players to drop into the next empty one.
-export function CompareStart({ initial, error }: { initial: string[]; error?: string }) {
+// Two to four boxes for gamertags, and recently viewed players to drop into the next empty one. The cursor starts in
+// `focus` (the box that failed), else the first empty box when some are filled in (opened from a profile's Compare).
+export function CompareStart({ initial, error, focus }: { initial: string[]; error?: string; focus?: number }) {
   const [values, setValues] = useState(() => Array.from({ length: Math.max(2, Math.min(4, initial.length)) }, (_, i) => initial[i] ?? ''));
+  const [start] = useState(() => focus ?? (initial.length ? values.findIndex((v) => !v.trim()) : -1));
   const [recent, setRecent] = useState<Recent[]>([]);
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => setRecent(loadRecent()), []);
@@ -24,7 +26,7 @@ export function CompareStart({ initial, error }: { initial: string[]; error?: st
         {values.map((v, i) => (
           <div key={i} className="cmp-input">
             <span className={`cmp-dot p${i}`} aria-hidden />
-            <input name="p" value={v} onChange={(e) => set(i, e.target.value)} placeholder={i < 2 ? 'Gamertag or profile link' : 'Optional'} aria-label={`Player ${i + 1}`} required={i < 2} autoComplete="off" autoCapitalize="off" spellCheck={false} />
+            <input name="p" value={v} onChange={(e) => set(i, e.target.value)} placeholder={i < 2 ? 'Gamertag or profile link' : 'Optional'} aria-label={`Player ${i + 1}`} required={i < 2} autoFocus={i === start} autoComplete="off" autoCapitalize="off" spellCheck={false} />
             {i >= 2 && (
               <button type="button" className="cmp-remove" aria-label={`Remove player ${i + 1}`} onClick={() => setValues((xs) => xs.filter((_, j) => j !== i))}>
                 ×

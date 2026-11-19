@@ -9,7 +9,7 @@ const b = sampleRival(NOW);
 describe('compare', () => {
   it('reads two to four distinct gamertags from the path', () => {
     expect(parseIds(['Alpha', 'beta', 'ALPHA', 'gamma', 'delta', 'epsilon'])).toEqual(['alpha', 'beta', 'gamma', 'delta']);
-    expect(parseIds(['Some%20One', 'Tag%231234'])).toEqual(['some one', 'tag#1234']);
+    expect(parseIds(['Some%20One', 'Tag%231234'])).toEqual(['some one', 'tag1234']);
   });
 
   it('puts every head-to-head figure side by side, and names a leader only when there is one', () => {

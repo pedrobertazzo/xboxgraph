@@ -1293,6 +1293,9 @@ body { overflow-x: clip; }
 .cmp-player .level-emblem b { font-size: 21px; margin-top: 14px; }
 .cmp-player .level-emblem span { bottom: 13px; }
 .cmp-wins { font-size: 13px; color: var(--pc); font-weight: 600; }
+.cmp-swap { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 18px 0 0; }
+.cmp-swap input:not([type='hidden']) { flex: 1 1 220px; min-width: 0; font: 16px var(--sans); color: #fff; background: rgba(255, 255, 255, 0.08); border: 0; border-radius: 999px; padding: 10px 18px; }
+.cmp-swap input:focus { outline: none; box-shadow: var(--focus); }
 .cmp-verdict { margin: 22px 0 6px; font: 300 22px/1.4 var(--display); color: var(--text); }
 .cmp-verdict b { color: #fff; font-weight: 600; }
 .cmp-section { margin-top: 32px; }

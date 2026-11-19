@@ -73,7 +73,7 @@ export function onlyCompleted(ps: XboxProfile[]): Game[][] {
   );
 }
 
-// Gamertags from a compare path, cleaned, deduplicated and capped.
+// Gamertags from a compare path, cleaned (without a suffix's "#", as gamertagId does), deduplicated and capped.
 export function parseIds(raw: string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -82,7 +82,7 @@ export function parseIds(raw: string[]): string[] {
     try {
       id = decodeURIComponent(r);
     } catch {}
-    id = id.trim().replace(/\s+/g, ' ').toLowerCase();
+    id = id.trim().replace(/\s+/g, ' ').replace('#', '').toLowerCase();
     if (id && !seen.has(id)) seen.add(id), out.push(id);
   }
   return out.slice(0, MAX_PLAYERS);

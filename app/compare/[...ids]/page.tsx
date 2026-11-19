@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CompareStart } from '@/components/CompareStart';
 import { Footer } from '@/components/Footer';
 import { Logo } from '@/components/Logo';
 import { TopSearch } from '@/components/TopSearch';
@@ -39,24 +40,32 @@ export default async function CompareView({ params }: Props) {
   const failed = results.filter((r) => 'error' in r);
   const ps = results.flatMap((r) => ('profile' in r && r.profile ? [r.profile] : []));
 
-  if (ps.length < 2)
+  // Not enough players to compare: the form again, filled in, with the cursor in the first box that failed.
+  if (ps.length < 2) {
+    const notFound = failed.some((f) => 'error' in f && /no xbox player/i.test(f.error ?? ''));
+    const bad = ids.findIndex((id) => failed.some((f) => f.id === id));
     return (
       <>
         <nav className="topbar"><Logo /></nav>
         <main className="landing">
-          <section className="hero notice">
+          <section className="hero notice compare-hero">
             <h1>Couldn’t compare those players</h1>
             {failed.map((f) => (
               <p key={f.id} className="error"><b>{f.id}</b>: {'error' in f ? f.error : ''}</p>
             ))}
-            <div className="actions">
-              <Link className="btn primary" href={`/compare?${ids.map((i) => `p=${encodeURIComponent(i)}`).join('&')}`}>Change players</Link>
-            </div>
+            {notFound && <p>Check the spelling. If Xbox shows a number after the name, like Gamertag#1234, include it: with or without the # works.</p>}
+            {ps.length === 1 && (
+              <p>
+                <Link href={profilePath(ps[0])}>See {ps[0].name}’s profile</Link> meanwhile.
+              </p>
+            )}
+            <CompareStart key={ids.join('/')} initial={ids} focus={bad >= 0 ? bad : undefined} />
           </section>
         </main>
         <Footer />
       </>
     );
+  }
 
   const rows = compareRows(ps);
   const lead = leaders(rows);
@@ -92,6 +101,16 @@ export default async function CompareView({ params }: Props) {
           {shared.length > 0 && <>You share <b>{shared.length.toLocaleString('en-US')}</b> {shared.length === 1 ? 'game' : 'games'} with achievements.</>}
         </p>
         {failed.length > 0 && <p className="note busy">{failed.map((f) => `${f.id}: ${'error' in f ? f.error : ''}`).join(' ')}</p>}
+
+        {/* Swap the last player for someone else, or add one, without going back to the form. */}
+        <form action="/api/compare" method="get" className="cmp-swap">
+          {ps.slice(0, -1).map((p) => <input key={p.id} type="hidden" name="p" value={p.id} />)}
+          <input name="p" placeholder="Another gamertag or profile link" aria-label="Another player" required autoComplete="off" autoCapitalize="off" spellCheck={false} />
+          <button type="submit" className="btn primary small">Swap for {ps[ps.length - 1].name}</button>
+          {ps.length < 4 && (
+            <button type="submit" name="keep" value={ps[ps.length - 1].id} className="btn ghost small">Add</button>
+          )}
+        </form>
 
         <section className="cmp-section">
           <h2>Head to head</h2>

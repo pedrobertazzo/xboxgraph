@@ -4,7 +4,10 @@ import { attachUnlocks, inputProblem, isGame, parseGamertag, platformsOf, secure
 describe('search input', () => {
   it('takes a gamertag or a profile link', () => {
     expect(parseGamertag('  Major   Nelson ')).toBe('major nelson');
-    expect(parseGamertag('Player#1234')).toBe('player#1234');
+    // Xbox shows "Name#1234"; the player is looked up, cached and linked as "name1234".
+    expect(parseGamertag('Player#1234')).toBe('player1234');
+    expect(parseGamertag('Player1234')).toBe('player1234');
+    expect(parseGamertag('https://www.xbox.com/en-US/play/user/Coco%236803')).toBe('coco6803');
     expect(parseGamertag('https://www.xbox.com/en-US/play/user/Major%20Nelson')).toBe('major nelson');
     expect(parseGamertag('account.xbox.com/en-us/profile?gamertag=Some+One')).toBe('some one');
     expect(parseGamertag('https://www.trueachievements.com/gamer/Stallion83')).toBe('stallion83');

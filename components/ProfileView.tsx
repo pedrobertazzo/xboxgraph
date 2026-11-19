@@ -8,6 +8,7 @@ import { Medal, ScoreRing } from './Medal';
 import { TileWall } from './TileWall';
 import { OptedOut } from './OptedOut';
 import { RecentProfiles, RememberProfile } from './Recent';
+import { SearchBox } from './SearchBox';
 import { TopSearch } from './TopSearch';
 import { LandingPreview } from './LandingPreview';
 import { StaleRefresh, WaitingCard } from './Waiting';
@@ -124,7 +125,13 @@ export async function ProfileView({ id: raw, sp }: { id: string; sp: Search }) {
     return (
       <Notice title={err?.code === 'not_found' ? `No player called “${id}”` : 'Couldn’t load that profile'}>
         <p className="error">{err?.message ?? 'Xbox is not responding. Try again in a moment.'}</p>
-        {err?.code === 'not_found' && <p>Check the spelling. Newer gamertags may need their number, like Gamertag#1234.</p>}
+        {err?.code === 'not_found' && (
+          <>
+            <p>Check the spelling. If Xbox shows a number after the name, like Gamertag#1234, include it: with or without the # works.</p>
+            <SearchBox q={id} label="Try another spelling" />
+            <RecentProfiles />
+          </>
+        )}
       </Notice>
     );
   }
