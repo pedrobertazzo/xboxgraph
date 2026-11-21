@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import { AlsoOn } from './AlsoOn';
 import { BacklogDetails } from './BacklogDetails';
 import { Dashboard } from './Dashboard';
 import { Footer } from './Footer';
@@ -205,6 +206,7 @@ export async function ProfileView({ id: raw, sp }: { id: string; sp: Search }) {
           share={{ pageUrl: `${env.appUrl}${path}`, cardUrl: `${env.appUrl}${path}/card.png`, name: profile.name }}
         />
         {!sample && <RememberProfile id={profile.id} name={profile.name} avatar={profile.avatar} />}
+        {!sample && <AlsoOn name={profile.name} />}
 
         {profile.playHidden && <p className="note busy">Xbox didn’t share this player’s play time, so hours are hidden.</p>}
         {profile.unlocksSkipped && <p className="note busy">This player has more achievements across their games than we can read in one go, so the calendar and when they play are left out.</p>}
