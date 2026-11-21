@@ -1744,3 +1744,11 @@ html[data-reveal] .mg-block[data-revealed='in'] .mg-chrome {
   html[data-reveal] .mg-block[data-revealed='in'],
   html[data-reveal] .mg-block[data-revealed='in'] .mg-chrome { animation: none; }
 }
+
+/* The "also on" line under the board: the same name on the sister grids. */
+.note.also-on { display: flex; align-items: flex-start; gap: 10px; color: var(--text); padding: 10px 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px var(--line); }
+.note.also-on span { flex: 1; }
+.note.also-on a { color: var(--bright); text-decoration: underline; text-underline-offset: 2px; }
+.note.also-on b { color: var(--bright); font-weight: 500; }
+.also-x { flex: none; width: 24px; height: 24px; margin: -2px -4px 0 0; border: 0; border-radius: 50%; background: none; color: var(--dim); font-size: 18px; line-height: 1; cursor: pointer; }
+.also-x:hover { color: var(--bright); background: rgba(255, 255, 255, 0.08); }
