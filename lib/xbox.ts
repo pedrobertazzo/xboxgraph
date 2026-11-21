@@ -449,7 +449,12 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
     user = await read.user(gamertag);
   } catch (e) {
     if (e instanceof XboxError) throw e;
-    if (e instanceof HttpError && e.status >= 500) throw new XboxError('upstream', 'Xbox didn’t answer. Try again in a moment.');
+    // Only a 404 means there's no such player. Anything else (a timeout, a refused or failed request) is Xbox or
+    // OpenXBL having trouble, and saying "no such player" would be wrong, and remembered for ten minutes.
+    if (!(e instanceof HttpError && e.status === 404)) {
+      console.warn('[xbox] gamertag lookup failed:', (e as Error).message);
+      throw new XboxError('upstream', 'Xbox didn’t answer. Try again in a moment.');
+    }
   }
   if (!user) throw new XboxError('not_found', 'No Xbox player has that gamertag.');
   const set = (k: string) => user!.settings.find((s) => s.id === k)?.value || null;
