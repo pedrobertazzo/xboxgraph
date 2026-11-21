@@ -379,8 +379,10 @@ export function attachUnlocks(games: Game[], unlocks: Unlock[]) {
 
 const SETTINGS = ['Gamertag', 'ModernGamertag', 'ModernGamertagSuffix', 'UniqueModernGamertag', 'GameDisplayPicRaw', 'Gamerscore', 'AccountTier', 'XboxOneRep', 'Bio', 'Location', 'TenureLevel'];
 const PAGES = 2;
-// MinutesPlayed for this many games per request: OpenXBL takes them all at once; Xbox Live, 200.
-const PLAY_BATCH: Record<Source, number> = { openxbl: 600, direct: 200 };
+// MinutesPlayed for this many games per request, the requests asked at the same time. Xbox Live takes 200. OpenXBL
+// takes any number but answers in about 25 ms a game (600 took 15 seconds), so above 300 it's split in two, for one
+// more request.
+const PLAY_BATCH: Record<Source, number> = { openxbl: 300, direct: 200 };
 const PLAY_MAX = 600;
 // OpenXBL's achievement list holds every achievement of every game played, unlocked or not, ordered by game rather
 // than by date, so it's read whole or not at all: about 1 MB and a second per 1,000, and a fourth request. It's off
@@ -445,8 +447,9 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
   const t0 = Date.now();
   const took: Record<string, number> = {};
   const timed = <T>(name: string, p: Promise<T>) => p.finally(() => (took[name] = Date.now() - t0));
-  // OpenXBL: lookup (unless the xuid is remembered), title history and play time. Directly: up to 6.
-  await ensureRoom(source() === 'openxbl' ? ((await readStore(`user:${gamertag.toLowerCase()}`)) ? 2 : 3) : 4);
+  // OpenXBL: lookup (unless the xuid is remembered), title history and play time (two requests for a big library).
+  // Directly: up to 6.
+  await ensureRoom(source() === 'openxbl' ? ((await readStore(`user:${gamertag.toLowerCase()}`)) ? 3 : 4) : 4);
   // The profile: gamertag → xuid, picture and gamerscore.
   let user: ProfileUser | undefined;
   try {
@@ -484,16 +487,17 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
     .slice(0, PLAY_MAX);
   const byId = new Map(games.map((g) => [g.id, g]));
   const batch = PLAY_BATCH[source()];
-  const playing = (async () => {
-    for (let i = 0; i < withTime.length; i += batch) {
-      const r = await read.stats(xuid, withTime.slice(i, i + batch).map((g) => g.id));
+  const batches = Array.from({ length: Math.ceil(withTime.length / batch) }, (_, i) => withTime.slice(i * batch, (i + 1) * batch));
+  const playing = Promise.all(
+    batches.map(async (part) => {
+      const r = await read.stats(xuid, part.map((g) => g.id));
       for (const s of r.statlistscollection?.[0]?.stats ?? []) {
         const g = byId.get(String(s.titleid));
         const min = Number(s.value);
         if (g && s.name === 'MinutesPlayed' && min > 0) g.playMin = min;
       }
-    }
-  })();
+    }),
+  );
   let unlocks: Unlock[] = [];
   let unlocksHidden = false;
   let unlocksCapped = false;
