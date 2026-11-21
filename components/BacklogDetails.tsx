@@ -29,6 +29,9 @@ export function BacklogDetails({ data }: { data: Backlog }) {
   const shown = all ? list : list.slice(0, LIMIT);
   const pace = howLong(data.total, data.perWeek);
   const averaged = data.games.filter((g) => g.source === 'average').length;
+  const fromIgdb = data.games.filter((g) => g.source === 'igdb').length;
+  const paced = data.games.filter((g) => g.source === 'pace').length;
+  const games = (n: number) => `${n} game${n === 1 ? '' : 's'}`;
 
   return (
     <div className="bl">
@@ -107,9 +110,30 @@ export function BacklogDetails({ data }: { data: Backlog }) {
         </button>
       )}
       <p className="bl-foot">
-        Hours left are projected from your own pace: how long a game has taken you so far against how far through its
-        gamerscore you are. {averaged > 0 && <>{averaged} game{averaged === 1 ? ' has' : 's have'} too little to go on (under 20% done, or no play time), so {averaged === 1 ? 'it uses' : 'they use'} your average of {nf(data.perCompletion)} hrs per 100% game. </>}
-        Xbox doesn’t share games you own but haven’t played, so they can’t be counted.
+        {fromIgdb > 0 && (
+          <>
+            For {fromIgdb === data.games.length ? 'every game' : games(fromIgdb)}, hours left start from how long the game takes players to 100%, adjusted
+            to how fast you’ve been going.{' '}
+          </>
+        )}
+        {paced > 0 && (
+          <>
+            {fromIgdb > 0 ? `The other ${games(paced)} ${paced === 1 ? 'is' : 'are'}` : 'Hours left are'} projected from your own pace: how long a game has
+            taken you so far against how far through its gamerscore you are.{' '}
+          </>
+        )}
+        {averaged > 0 && <>{averaged} game{averaged === 1 ? ' has' : 's have'} too little to go on (under 20% done, or no play time), so {averaged === 1 ? 'it uses' : 'they use'} your typical {nf(data.perCompletion)} hrs per 100% game. </>}
+        No single game counts for more than 150 hrs. Only games you’ve played are included.
+        {fromIgdb > 0 && (
+          <>
+            {' '}
+            Times to beat from{' '}
+            <a href="https://www.igdb.com" target="_blank" rel="noopener noreferrer">
+              IGDB
+            </a>
+            .
+          </>
+        )}
       </p>
     </div>
   );

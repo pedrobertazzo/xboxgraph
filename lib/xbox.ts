@@ -1,4 +1,6 @@
 import { enrich } from './catalog';
+import { after } from 'next/server';
+import { timeToBeat } from './timetobeat';
 import { env } from './env';
 import { cached, pause, pausedUntil, read, read as readStore, roomAt, spendOne, used, write } from './store';
 import type { Achievements, Game, Platform, Unlock, XboxProfile } from './types';
@@ -497,8 +499,9 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
     unlocksSkipped = r.skipped;
     unlocksOff = 'off' in r;
   })();
-  // Store details (genres, dates, studios, prices, ratings, box art) don't count against the Xbox budget.
-  const [played, unlocked] = await Promise.allSettled([playing, unlocking, enrich(games)]);
+  // Store details (genres, dates, studios, prices, ratings, box art) and IGDB's times to beat don't count against the
+  // Xbox budget.
+  const [played, unlocked] = await Promise.allSettled([playing, unlocking, enrich(games), timeToBeat(games)]);
   for (const r of [played, unlocked]) if (r.status === 'rejected' && r.reason instanceof XboxError && r.reason.code === 'busy') throw r.reason;
   playHidden = played.status === 'rejected';
   unlocksHidden = unlocked.status === 'rejected';
@@ -547,6 +550,7 @@ async function load(gt: string, key: string): Promise<XboxProfile> {
     const p = { ...(await readProfile(gt)), fetchedAt: Date.now() };
     await write(`profile:${key}`, p, HOUR);
     await write(`last:${key}`, p, 30 * DAY);
+    finishTimesToBeat(p, key);
     return p;
   } catch (e) {
     if (e instanceof XboxError && e.code === 'not_found') await write(`miss:${key}`, true, MISS_TTL);
@@ -555,6 +559,30 @@ async function load(gt: string, key: string): Promise<XboxProfile> {
       if (old) return { ...old, stale: true, retryAt: e.retryAt };
     }
     throw e;
+  }
+}
+
+// A big backlog's times to beat may not all fit in the load's IGDB budget. The rest are looked up after the page has
+// been sent, and the saved profile is updated, so the next visit has them all.
+const AFTER_BUDGET_MS = 45_000;
+
+function finishTimesToBeat(p: XboxProfile, key: string) {
+  if (p.games.every((g) => g.timeToBeat !== undefined || !g.achievements || g.achievements.progress >= 100 || g.achievements.score <= 0)) return;
+  const answered = () => p.games.filter((g) => g.timeToBeat !== undefined).length;
+  const finish = async () => {
+    const before = answered();
+    await timeToBeat(p.games, AFTER_BUDGET_MS);
+    if (answered() === before) return;
+    // Unless a newer copy was read from Xbox meanwhile.
+    const now = await read<XboxProfile>(`profile:${key}`);
+    if (now && now.fetchedAt !== p.fetchedAt) return;
+    await write(`profile:${key}`, p, Math.max(60_000, HOUR - (Date.now() - (p.fetchedAt ?? Date.now()))));
+    await write(`last:${key}`, p, 30 * DAY);
+  };
+  try {
+    after(finish);
+  } catch {
+    // Outside a request (scripts), there's no "after"; the next load fills them in instead.
   }
 }
 

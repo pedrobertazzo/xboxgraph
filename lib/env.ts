@@ -8,5 +8,9 @@ export const env = {
   // Only for app registrations of the "Web" type; public (mobile and desktop) registrations have no secret.
   clientSecret: process.env.XBOX_CLIENT_SECRET ?? '',
   refreshToken: process.env.XBOX_REFRESH_TOKEN ?? '',
+  // A Twitch developer app (dev.twitch.tv → Your Console → Register Your Application), for IGDB's times to beat.
+  // Without it the Backlog projects only from the player's own pace.
+  twitchClientId: process.env.TWITCH_CLIENT_ID ?? '',
+  twitchClientSecret: process.env.TWITCH_CLIENT_SECRET ?? '',
   redirectUri: process.env.XBOX_REDIRECT_URI ?? 'http://localhost:8080/auth/callback',
 };

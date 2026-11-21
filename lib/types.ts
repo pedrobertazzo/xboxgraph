@@ -39,6 +39,8 @@ export interface Game {
   ratings?: number;
   // On Game Pass, as the title history says (OpenXBL); null when not known.
   gamePass?: boolean | null;
+  // Hours to beat, from IGDB (lib/timetobeat.ts), for unfinished games; null when IGDB has none.
+  timeToBeat?: { story: number | null; complete: number | null } | null;
 }
 
 // One unlocked achievement, from the player's unlock list (Xbox One and later; newest first).
