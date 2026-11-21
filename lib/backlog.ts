@@ -2,18 +2,37 @@ import type { Game, XboxProfile } from './types';
 
 // ---- Hours to finish what you started ----
 //
-// Xbox only lists the games someone has played, so there's no pile of never-played games, and its genres are too
-// broad to estimate from. Instead each unfinished game is projected from the player's own pace: if 40% of its
+// Xbox only lists the games someone has played, so there's no pile of never-played games. When IGDB knows how long
+// a game takes to 100% (lib/timetobeat.ts), that's the start: the share of its gamerscore still to earn, of IGDB's
+// time, adjusted by how fast this player is going compared with IGDB's players (from 0.5× to 2×). With too little
+// play time in the game, their usual speed across their other games is used (from 0.75× to 1.5×). With only a time
+// to the credits, 100% is taken as 1.5× that.
+//
+// Hours to 100% over 300 on IGDB (endless multiplayer games, where players log time played) are ignored.
+//
+// Otherwise each unfinished game is projected from the player's own pace: if 40% of its
 // gamerscore took 20 hours, the other 60% should take about 30. Gamerscore is a rough gauge of how far through a game
 // someone is, so these are estimates to 100%, not to the end of the story. Games with too little play to go on
-// (Xbox 360 games have no play time at all), or under 20% done, use the player's average hours per 100%.
+// (Xbox 360 games have no play time at all), or under 20% done, use the player's typical hours per 100%: the median
+// of their finished games, kept between 10 and 60 hours so one multiplayer game at 100% after thousands of hours
+// can't set it for everything else. No single game is projected past CAP, whichever way it's estimated, since a
+// sports or live-service game can take hundreds of hours for a sliver of its gamerscore.
 
 const DAY = 86400000;
 const WEEK = 7 * DAY;
 const FALLBACK_COMPLETION = 40;
-// No single game is projected past this many hours, or three average completions if that's more.
+const MIN_COMPLETION = 10;
+const MAX_COMPLETION = 60;
+// No single game is projected past this many hours.
 const CAP = 150;
 const MIN_PACE = 20;
+// Times to 100% are logged far less than times to the credits; with only the latter, 100% is taken as half as long again.
+const STORY_TO_FULL = 1.5;
+const MIN_SPEED = 0.5;
+const MAX_SPEED = 2;
+// A barely started game borrows the player's usual speed from their other games, within a narrower range.
+const MIN_USUAL = 0.75;
+const MAX_USUAL = 1.5;
 
 export interface BacklogGame {
   id: string;
@@ -24,8 +43,9 @@ export interface BacklogGame {
   left: number;
   progress: number;
   playedHours: number | null;
-  // 'pace' when projected from the game's own play time and progress, 'average' when from the player's average.
-  source: 'pace' | 'average';
+  // 'igdb' when from IGDB's time to 100%, 'pace' when projected from the game's own play time and progress, 'average'
+  // when from the player's typical 100%.
+  source: 'igdb' | 'pace' | 'average';
   lastTouched: number;
 }
 
@@ -34,25 +54,50 @@ export interface Backlog {
   total: number;
   // Hours a week this player usually plays, from their first unlock to today; null with no play time.
   perWeek: number | null;
-  // Hours an average 100% takes them, the fallback for games with too little to go on.
+  // Hours a typical 100% takes them, the fallback for games with too little to go on.
   perCompletion: number;
 }
 
+const median = (xs: number[]) => {
+  if (!xs.length) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
 const half = (h: number) => Math.max(0.5, Math.round(h * 2) / 2);
 export const lastTouch = (g: Game) => Math.max(g.lastPlayed ?? 0, g.lastUnlock ?? 0);
 
 export function backlogOf(p: XboxProfile, now = Date.now()): Backlog | null {
   const done = p.games.filter((g) => g.achievements && g.achievements.maxScore > 0 && g.achievements.progress >= 100 && (g.playMin ?? 0) > 0);
-  const perCompletion = done.length ? done.reduce((s, g) => s + g.playMin! / 60, 0) / done.length : FALLBACK_COMPLETION;
+  const perCompletion = Math.min(MAX_COMPLETION, Math.max(MIN_COMPLETION, median(done.map((g) => g.playMin! / 60)) ?? FALLBACK_COMPLETION));
+  const open = p.games.filter((g) => g.achievements && g.achievements.maxScore > 0 && g.achievements.score > 0 && g.achievements.progress < 100);
+  const fullOf = (g: Game) => g.timeToBeat?.complete ?? (g.timeToBeat?.story ? g.timeToBeat.story * STORY_TO_FULL : null);
+  const clampSpeed = (x: number) => Math.min(MAX_SPEED, Math.max(MIN_SPEED, x));
+  // How long this player takes against IGDB's players, game by game where both are known.
+  const speedOf = (g: Game) => {
+    const full = fullOf(g);
+    const pr = g.achievements!.progress;
+    const played = g.playMin ? g.playMin / 60 : 0;
+    return full && played >= 0.5 && pr >= MIN_PACE ? played / ((full * pr) / 100) : null;
+  };
+  const usual = Math.min(MAX_USUAL, Math.max(MIN_USUAL, median(open.map(speedOf).filter((x): x is number => x !== null)) ?? 1));
   const games: BacklogGame[] = [];
-  for (const g of p.games) {
-    const a = g.achievements;
-    if (!a || a.maxScore <= 0 || a.score <= 0 || a.progress >= 100) continue;
+  for (const g of open) {
+    const a = g.achievements!;
     const pr = Math.max(1, a.progress);
     const played = g.playMin ? g.playMin / 60 : null;
+    const full = fullOf(g);
     // Under 20% the gamerscore says little about how far through a game someone is, so the average is used.
     const byPace = played !== null && played >= 0.5 && pr >= MIN_PACE;
-    const left = Math.min(Math.max(CAP, perCompletion * 3), byPace ? (played! * (100 - pr)) / pr : (perCompletion * (100 - pr)) / 100);
+    const speed = speedOf(g);
+    const source: BacklogGame['source'] = full ? 'igdb' : byPace ? 'pace' : 'average';
+    const raw =
+      source === 'igdb'
+        ? ((full! * (100 - pr)) / 100) * (speed === null ? usual : clampSpeed(speed))
+        : source === 'pace'
+          ? (played! * (100 - pr)) / pr
+          : (perCompletion * (100 - pr)) / 100;
+    const left = Math.min(CAP, raw);
     games.push({
       id: g.id,
       title: g.title,
@@ -61,7 +106,7 @@ export function backlogOf(p: XboxProfile, now = Date.now()): Backlog | null {
       left: half(left),
       progress: a.progress,
       playedHours: played,
-      source: byPace ? 'pace' : 'average',
+      source,
       lastTouched: lastTouch(g),
     });
   }

@@ -130,14 +130,14 @@ export const TOPICS: Topic[] = [
       'Every Xbox game you started and never finished, with how many hours it would take to reach 100% at your own pace, added up. Plus the quickest wins to go for first.',
     sections: [
       [
-        'Worked out from your own pace',
-        'If 40% of a game’s gamerscore took you 20 hours, the other 60% should take about 30. Each unfinished game is projected that way from your own play time, so a slow, thorough player gets a longer estimate than a speedrunner.',
+        'Worked out from real times to beat, at your own pace',
+        'Each unfinished game starts from how long players take to 100% it, from IGDB, then is adjusted to how fast you’ve been going: a slow, thorough player gets a longer estimate than a speedrunner. For games without a time to beat, your own play time is used: if 40% of the gamerscore took you 20 hours, the other 60% should take about 30.',
       ],
       [
         'Games you started, not games you own',
         'Xbox only lists games someone has played, so the backlog is what you started and left unfinished, not a pile of unopened purchases or Game Pass picks. Estimates are to 100% of the gamerscore, not just the end of the story.',
       ],
-      ['When there’s too little to go on', 'Games with barely any progress, or Xbox 360 games (which share no play time), use your average hours per 100% game instead.'],
+      ['When there’s too little to go on', 'Games with no time to beat and barely any progress, or Xbox 360 games with no play time recorded, use your typical hours per 100% game instead. No single game counts for more than 150 hours.'],
     ],
     stats: [
       ['backlog', 'Hours to 100% every game you started, quickest first, at your own pace.'],

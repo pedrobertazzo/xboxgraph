@@ -71,7 +71,14 @@ To connect it: Vercel → your project → **Storage → Create Database → Ups
 
 ### The Backlog
 
-Xbox only lists games someone has played, so the Backlog is **hours to finish what you started**: every game with gamerscore but not at 100%, projected from the player's own pace (if 40% of the gamerscore took 20 hours, the rest should take about 30). Games under 20% done, or with no play time (Xbox 360), use the player's average hours per 100% game and are marked "estimate"; no game is projected past 150 hours (or three average completions). No extra requests (`lib/backlog.ts`).
+Xbox only lists games someone has played, so the Backlog is **hours to finish what you started**: every game with gamerscore but not at 100%.
+
+- **With IGDB** (`TWITCH_CLIENT_ID` and `TWITCH_CLIENT_SECRET` set): each game's time to 100% comes from [IGDB](https://www.igdb.com)'s crowd-sourced times to beat, scaled to the gamerscore still to earn and to how fast the player goes compared with IGDB's players (0.5× to 2×). Games are matched by cleaned-up title ("FIFA 21 Xbox One" → "FIFA 21") among IGDB's Xbox and PC releases; a loose match counts as no match. Names are matched 10 to a multi-query (multi-queries take no text search), and only games that finds nothing for get a text search of their own. A load waits up to 6 seconds for IGDB; the rest are looked up after the page is sent (Next's `after`) and the saved profile is updated. With only a time to the credits, 100% is taken as 1.5× that; times to 100% over 300 hours (endless multiplayer games) are ignored. Every answer, misses included, is cached per title ID in the shared cache (45 days, misses 14) (`lib/timetobeat.ts`).
+- **Otherwise**, a game is projected from the player's own pace (if 40% of the gamerscore took 20 hours, the rest should take about 30). Games under 20% done, or with no play time (Xbox 360), use the player's typical hours per 100% game (the median of their finished games, kept between 10 and 60) and are marked "estimate".
+
+No game is projected past 150 hours (`lib/backlog.ts`).
+
+To get the keys: sign in at [dev.twitch.tv/console](https://dev.twitch.tv/console) (two-factor authentication must be on), **Register Your Application**, set the OAuth redirect URL to `http://localhost`, pick a category, and choose the **Confidential** client type. Copy the Client ID, create a new secret, and add both to `.env.local` and Vercel.
 
 ## Stats
 
@@ -146,6 +153,7 @@ npm run peek -- "Some Gamertag"   # print a real profile's stats in the terminal
 | `XBOX_REDIRECT_URI` | `npm run xbox-login` | Defaults to `http://localhost:8080/auth/callback`; must match the registration |
 | `XBOX_REFRESH_TOKEN` | Signing in directly | `npm run xbox-login`. Keep it secret; it can act as the helper account. |
 | `OPTED_OUT_GAMERTAGS` | Opt-outs | Gamertags, comma-separated |
+| `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | Backlog times to beat from IGDB (optional, recommended) | dev.twitch.tv → Your Console → Register Your Application (see The Backlog) |
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | The shared cache (optional, recommended) | Set when you connect Upstash for Redis on Vercel |
 
 On Vercel, add these under **Settings → Environment Variables** and redeploy; add `xbox.morphgrid.io` under **Settings → Domains**.

@@ -105,6 +105,35 @@ describe('stats', () => {
     expect(s.backlog?.averaged).toBe(1);
   });
 
+  it('keeps one marathon 100% and grindy multiplayer games from blowing up the backlog', () => {
+    const g = (id: string, hrs: number | null, progress: number) => game({ id, title: id, playMin: hrs === null ? null : hrs * 60, achievements: { earned: 10, total: 40, score: progress * 10, maxScore: 1000, progress } });
+    // The only 100% took 6,000 hours, and a sports game is at 22% after 450 hours.
+    const marathon = done({ id: 'P', title: 'P', playMin: 6000 * 60 });
+    const s = stat(profile([g('Story', 2, 10), g('Sports', 450, 22), marathon]), 'backlog')!;
+    // Story: 90% of the 60 h ceiling → 54 h. Sports: capped at 150 h.
+    expect(s.series.map((e) => [e.label, e.value])).toEqual([['Story', 54], ['Sports', 150]]);
+    expect(s.backlog?.perCompletion).toBe(60);
+  });
+
+  it('starts from IGDB’s time to 100%, scaled to how fast the player goes', () => {
+    const g = (id: string, hrs: number | null, progress: number, complete: number | null) =>
+      game({ id, title: id, playMin: hrs === null ? null : hrs * 60, timeToBeat: complete ? { story: null, complete } : null, achievements: { earned: 10, total: 40, score: progress * 10, maxScore: 1000, progress } });
+    const s = stat(
+      profile([
+        // 20 h for half of a 20 h game: twice as slow as IGDB's players → 10 h × 2 = 20 h left.
+        g('Slow', 20, 50, 20),
+        // 1,000 h for 50% of a 40 h game is capped at 2× → 20 h × 2 = 40 h.
+        g('Sports', 1000, 50, 40),
+        // Barely started: their usual speed (the median 2×, limited to 1.5× when borrowed) over 90% of 30 h → 40.5 h.
+        g('Fresh', 1, 10, 30),
+        // Nothing on IGDB: their own pace, as before → 10 h.
+        g('Indie', 10, 50, null),
+      ]),
+      'backlog',
+    )!;
+    expect(s.series.map((e) => [e.label, e.value])).toEqual([['Indie', 10], ['Slow', 20], ['Sports', 40], ['Fresh', 40.5]]);
+  });
+
   it('ranks the rarest achievements and splits unlocks by rarity', () => {
     const unlocks = [0.5, 3, 8, 20, 60, 70, 80, 90, 95, 99].map((rarity, i) => unlock({ name: `U${i}`, rarity }));
     const p = profile([game()], { unlocks });
