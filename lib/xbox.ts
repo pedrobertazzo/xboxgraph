@@ -505,8 +505,9 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
     unlocksOff = 'off' in r;
   })();
   // Store details (genres, dates, studios, prices, ratings, box art) and IGDB's times to beat don't count against the
-  // Xbox budget.
-  const [played, unlocked] = await Promise.allSettled([playing, unlocking, enrich(games), timeToBeat(games)]);
+  // Xbox budget. They get a few seconds alongside the Xbox reads, most played games first; whatever is left is looked
+  // up after the page has been sent (see finishExtras).
+  const [played, unlocked] = await Promise.allSettled([playing, unlocking, enrich(games, EXTRAS_MS), timeToBeat(games, EXTRAS_MS)]);
   for (const r of [played, unlocked]) if (r.status === 'rejected' && r.reason instanceof XboxError && r.reason.code === 'busy') throw r.reason;
   playHidden = played.status === 'rejected';
   unlocksHidden = unlocked.status === 'rejected';
@@ -555,7 +556,7 @@ async function load(gt: string, key: string): Promise<XboxProfile> {
     const p = { ...(await readProfile(gt)), fetchedAt: Date.now() };
     await write(`profile:${key}`, p, HOUR);
     await write(`last:${key}`, p, 30 * DAY);
-    finishTimesToBeat(p, key);
+    finishExtras(p, key);
     return p;
   } catch (e) {
     if (e instanceof XboxError && e.code === 'not_found') await write(`miss:${key}`, true, MISS_TTL);
@@ -567,17 +568,19 @@ async function load(gt: string, key: string): Promise<XboxProfile> {
   }
 }
 
-// A big backlog's times to beat may not all fit in the load's IGDB budget. The rest are looked up after the page has
-// been sent, and the saved profile is updated, so the next visit has them all.
+// A big library's store details and times to beat may not all fit in the load's budget. The rest are looked up after
+// the page has been sent, and the saved profile is updated, so the next visit (and the share card) has them all.
+const EXTRAS_MS = 2500;
 const AFTER_BUDGET_MS = 45_000;
 
-function finishTimesToBeat(p: XboxProfile, key: string) {
-  if (p.games.every((g) => g.timeToBeat !== undefined || !g.achievements || g.achievements.progress >= 100 || g.achievements.score <= 0)) return;
-  const answered = () => p.games.filter((g) => g.timeToBeat !== undefined).length;
+const ttbLeft = (p: XboxProfile) => p.games.some((g) => g.timeToBeat === undefined && !!g.achievements && g.achievements.progress < 100 && g.achievements.score > 0);
+
+// Store details already looked up come straight from the cache, so a profile that got everything costs nothing here.
+function finishExtras(p: XboxProfile, key: string) {
   const finish = async () => {
-    const before = answered();
-    await timeToBeat(p.games, AFTER_BUDGET_MS);
-    if (answered() === before) return;
+    const before = JSON.stringify(p.games);
+    await Promise.allSettled([enrich(p.games), ttbLeft(p) ? timeToBeat(p.games, AFTER_BUDGET_MS) : null]);
+    if (JSON.stringify(p.games) === before) return;
     // Unless a newer copy was read from Xbox meanwhile.
     const now = await read<XboxProfile>(`profile:${key}`);
     if (now && now.fetchedAt !== p.fetchedAt) return;

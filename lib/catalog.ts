@@ -75,16 +75,22 @@ export const storeInfo = (titleId: string) => cached<StoreInfo | false>(`store:$
 
 // Fills in store details for a player's most played and most recent games, a few lookups at a time. Anything the
 // title history already gave (direct sign-in has genres, dates and art) is kept.
-export async function enrich(games: Game[], limit = LOOKUPS) {
+// With a time budget, it stops when the budget runs out and returns false if games were left; answers that arrive
+// later are still cached (so the next pass gets them at once) but aren't written into games already handed back.
+export async function enrich(games: Game[], budgetMs = Infinity, limit = LOOKUPS): Promise<boolean> {
   const pick = games
     .filter((g) => (g.playMin ?? 0) > 0 || (g.achievements?.score ?? 0) > 0)
     .sort((a, b) => (b.playMin ?? 0) - (a.playMin ?? 0) || (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0))
     .slice(0, limit);
   let next = 0;
+  let done = 0;
+  let stopped = false;
   const worker = async () => {
-    while (next < pick.length) {
+    while (next < pick.length && !stopped) {
       const g = pick[next++];
       const s = await storeInfo(g.id);
+      if (stopped) return;
+      done++;
       if (!s) continue;
       g.developer = s.developer;
       g.publisher = s.publisher;
@@ -97,6 +103,12 @@ export async function enrich(games: Game[], limit = LOOKUPS) {
       if (s.box) g.icon = s.box;
     }
   };
-  await Promise.all(Array.from({ length: AT_ONCE }, worker));
-  return pick.length;
+  const all = Promise.all(Array.from({ length: AT_ONCE }, worker));
+  if (Number.isFinite(budgetMs)) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([all, new Promise((r) => (timer = setTimeout(r, budgetMs)))]);
+    clearTimeout(timer);
+    stopped = true;
+  } else await all;
+  return done === pick.length;
 }
