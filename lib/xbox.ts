@@ -441,12 +441,16 @@ const READS = {
 
 async function readProfile(gamertag: string): Promise<XboxProfile> {
   const read = READS[source()];
+  // How long each stage took, logged once per fresh load, to see what a slow profile waits on.
+  const t0 = Date.now();
+  const took: Record<string, number> = {};
+  const timed = <T>(name: string, p: Promise<T>) => p.finally(() => (took[name] = Date.now() - t0));
   // OpenXBL: lookup (unless the xuid is remembered), title history and play time. Directly: up to 6.
   await ensureRoom(source() === 'openxbl' ? ((await readStore(`user:${gamertag.toLowerCase()}`)) ? 2 : 3) : 4);
   // The profile: gamertag → xuid, picture and gamerscore.
   let user: ProfileUser | undefined;
   try {
-    user = await read.user(gamertag);
+    user = await timed('user', read.user(gamertag));
   } catch (e) {
     if (e instanceof XboxError) throw e;
     // Only a 404 means there's no such player. Anything else (a timeout, a refused or failed request) is Xbox or
@@ -463,7 +467,7 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
   // Every title the player has played, with its achievement summary (and, signed in directly, art, genres and dates).
   let titles: TitleLike[];
   try {
-    titles = await read.titles(xuid);
+    titles = await timed('titles', read.titles(xuid));
   } catch (e) {
     if (e instanceof XboxError) throw e;
     if (e instanceof HttpError && (e.status === 403 || e.status === 401)) throw new XboxError('private', 'This player’s game history is private.');
@@ -474,15 +478,15 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
   // Play time, for Xbox One, Series X|S and PC games, most recently played first; and the unlocked achievements.
   // The two don't depend on each other, so they're read at the same time.
   let playHidden = false;
-  const timed = games
+  const withTime = games
     .filter((g) => g.platforms.some((p) => p !== 'Xbox 360' && p !== 'Mobile'))
     .sort((a, b) => (b.lastPlayed ?? 0) - (a.lastPlayed ?? 0))
     .slice(0, PLAY_MAX);
   const byId = new Map(games.map((g) => [g.id, g]));
   const batch = PLAY_BATCH[source()];
   const playing = (async () => {
-    for (let i = 0; i < timed.length; i += batch) {
-      const r = await read.stats(xuid, timed.slice(i, i + batch).map((g) => g.id));
+    for (let i = 0; i < withTime.length; i += batch) {
+      const r = await read.stats(xuid, withTime.slice(i, i + batch).map((g) => g.id));
       for (const s of r.statlistscollection?.[0]?.stats ?? []) {
         const g = byId.get(String(s.titleid));
         const min = Number(s.value);
@@ -507,7 +511,8 @@ async function readProfile(gamertag: string): Promise<XboxProfile> {
   // Store details (genres, dates, studios, prices, ratings, box art) and IGDB's times to beat don't count against the
   // Xbox budget. They get a few seconds alongside the Xbox reads, most played games first; whatever is left is looked
   // up after the page has been sent (see finishExtras).
-  const [played, unlocked] = await Promise.allSettled([playing, unlocking, enrich(games, EXTRAS_MS), timeToBeat(games, EXTRAS_MS)]);
+  const [played, unlocked] = await Promise.allSettled([timed('stats', playing), timed('unlocks', unlocking), timed('store', enrich(games, EXTRAS_MS)), timed('igdb', timeToBeat(games, EXTRAS_MS))]);
+  console.log(`[xbox] fresh load ${gamertag}: ${games.length} games,`, Object.entries(took).map(([k, v]) => `${k} ${v}ms`).join(', '));
   for (const r of [played, unlocked]) if (r.status === 'rejected' && r.reason instanceof XboxError && r.reason.code === 'busy') throw r.reason;
   playHidden = played.status === 'rejected';
   unlocksHidden = unlocked.status === 'rejected';
